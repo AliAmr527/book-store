@@ -181,11 +181,8 @@ public class mongoConnection {
         return bookDetails(doc);
     }
 
-    public String[][] bookByTitle(String title){
-        Bson projectionFields = Projections.fields(Projections.excludeId());
-        MongoCursor<Document> cursor = colBooks.find(eq("title",title)).projection(projectionFields).iterator();
-        long matchedCount = colBooks.countDocuments(eq("title",title));
-        String [][] res = new String[(int) matchedCount][6];
+    private String[][] loopDocuments2D(MongoCursor<Document> cursor, int matchedCount) {
+        String [][] res = new String[matchedCount][6];
         int count =0;
 
         while (cursor.hasNext()) {
@@ -201,24 +198,18 @@ public class mongoConnection {
         return res;
     }
 
+    public String[][] bookByTitle(String title){
+        Bson projectionFields = Projections.fields(Projections.excludeId());
+        MongoCursor<Document> cursor = colBooks.find(eq("title",title)).projection(projectionFields).iterator();
+        long matchedCount = colBooks.countDocuments(eq("title",title));
+        return loopDocuments2D(cursor, (int) matchedCount);
+    }
+
     public String[][] bookByAuthor(String author){
         Bson projectionFields = Projections.fields(Projections.excludeId());
         MongoCursor<Document> cursor = colBooks.find(eq("author",author)).projection(projectionFields).iterator();
         long matchedCount = colBooks.countDocuments(eq("author",author));
-        String [][] res = new String[(int) matchedCount][6];
-        int count =0;
-
-        while (cursor.hasNext()) {
-            String [] temp;
-            temp = bookDetails(cursor.next());
-            for (int i = 0; i <= 5; i++) {
-                if(temp[i]!=null){
-                    res[count][i] = temp[i];
-                }
-            }
-            count++;
-        }
-        return res;
+        return loopDocuments2D(cursor, (int) matchedCount);
     }
 
 //        Document sampleDoc = new Document("_id","4").append("name","john smith").append("books", Arrays.asList("book1","book2"));
