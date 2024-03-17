@@ -17,6 +17,7 @@ import com.mongodb.client.*;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import com.mongodb.client.model.Projections;
@@ -44,15 +45,14 @@ public class mongoConnection {
         colRequests = db.getCollection("requests");
     }
 
-    public String login(String email, String password) {
-
-        DBObject condition1 = new BasicDBObject("email", email).append("password", password);
+    public String login(String username, String password) {
+        DBObject condition1 = new BasicDBObject("username", username).append("password", password);
         BasicDBList search = new BasicDBList();
         search.add(condition1);
         Bson projectionFields = Projections.fields(Projections.include("_id"));
         DBObject query = new BasicDBObject("$and", search);
         Document doc = colUsers.find((Bson) query).projection(projectionFields).first();
-        System.out.println(email);
+        System.out.println(username);
         if (doc != null) {
             return doc.toJson();
         } else {
@@ -60,16 +60,20 @@ public class mongoConnection {
         }
     }
 
-    public String register(String name, String email, String password) {
-        Document doc = colUsers.find(eq("email", email)).first();
+    public String register(String name, String username, String password) {
+        Document doc = colUsers.find(eq("username", username)).first();
         if (doc != null){
             return "false";
         }
-        Document sampleDoc = new Document().append("name",name).append("email",email).append("password",password);
+        Document sampleDoc = new Document().append("name",name).append("username",username).append("password",password);
         colUsers.insertOne(sampleDoc);
-        Document user = colUsers.find(eq("email", email)).first();
+        Bson projectionFields = Projections.fields(Projections.include("username"));
+        Document user = colUsers.find(eq("username", username)).projection(projectionFields).first();
         assert user != null;
-        return user.toJson();
+        String s = user.toJson().split(",")[1];
+        String s2 = s.split(": \"")[1];
+        String s3 = s2.split("\"}")[0];
+        return s3;
     }
     //title author genre price quantity list of clients
     public boolean addBook(String title, String author, String genre, int price,int quantity){
