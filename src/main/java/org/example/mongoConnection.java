@@ -56,22 +56,24 @@ public class mongoConnection {
         if (doc != null) {
             return doc.toJson();
         } else {
-            return null;
+            return "false";
         }
     }
 
-    public boolean register(String name, String email, String password) {
+    public String register(String name, String email, String password) {
         Document doc = colUsers.find(eq("email", email)).first();
         if (doc != null){
-            return false;
+            return "false";
         }
         Document sampleDoc = new Document().append("name",name).append("email",email).append("password",password);
         colUsers.insertOne(sampleDoc);
-        return true;
+        Document user = colUsers.find(eq("email", email)).first();
+        assert user != null;
+        return user.toJson();
     }
     //title author genre price quantity list of clients
     public boolean addBook(String title, String author, String genre, int price,int quantity){
-        Document doc = colUsers.find(eq("title", title)).first();
+        Document doc = colBooks.find(eq("title", title)).first();
         if (doc != null){
             return false;
         }
