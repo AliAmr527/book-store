@@ -1,37 +1,24 @@
 package org.example;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import org.bson.Document;
-
 import java.io.*;
 import java.net.*;
-import java.util.Scanner;
+import java.util.Arrays;
 
-// Server class
 class Server {
     public static void main(String[] args) {
         ServerSocket server = null;
         try {
-            // server is listening on port 1234
             server = new ServerSocket(1234);
             server.setReuseAddress(true);
-            // running infinite loop for getting
-            // client request
+            // running infinite loop for getting client requests
             while (true) {
-
-                // socket object to receive incoming client
-                // requests
+                // socket object to receive incoming client requests
                 Socket client = server.accept();
-                // Displaying that new client is connected
-                // to server
-                System.out.println("New client connected"
-                        + client.getInetAddress()
-                        .getHostAddress());
+                // Displaying that new client is connected to server
+                System.out.println("New client connected" + client.getInetAddress().getHostAddress());
                 // create a new thread object
                 ClientHandler clientSock = new ClientHandler(client);
-                // This thread will handle the client
-                // separately
+                // This thread will handle the client separately
                 new Thread(clientSock).start();
             }
         } catch (IOException e) {
@@ -48,11 +35,11 @@ class Server {
     }
 
     private static class ClientHandler implements Runnable {
-        mongoConnection db;
         private final Socket clientSocket;
-        boolean closeTerm = true;
-        boolean isLoggedIn = false;
+        PrintWriter out = null;
+        BufferedReader in = null;
         String userId;
+        mongoConnection db;
 
         public ClientHandler(Socket socket) {
             this.clientSocket = socket;
@@ -60,15 +47,14 @@ class Server {
         }
 
         public void run() {
-            PrintWriter out = null;
-            BufferedReader in = null;
             try {
                 // get the output stream of client
                 out = new PrintWriter(clientSocket.getOutputStream(), true);
                 // get the input stream of client
                 in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 String choice;
-                while (closeTerm) {
+                out.println("Welcome to the Library!");
+                while (true) {
                     out.println("1) Log in");
                     out.println("2) Sign up");
                     out.println("3) Exit");
@@ -76,11 +62,12 @@ class Server {
                     out.println("x");
                     choice = in.readLine();
                     if (choice.equals("1")) {
-                        logIn(out, in);
+                        logIn();
                     } else if (choice.equals("2")) {
-                        signUp(out, in);
+                        signUp();
                     } else if (choice.equals("3")) {
-                        closeTerm = false;
+                        out.println("shutDown");
+                        break;
                     } else {
                         out.println("Wrong Input, Please Try Again");
                     }
@@ -102,7 +89,7 @@ class Server {
             }
         }
 
-        private void signUp(PrintWriter out, BufferedReader in) throws IOException {
+        private void signUp() throws IOException {
             String name, username, password;
             out.println("Please enter your details to sign up");
             out.println("Name:");
@@ -119,14 +106,14 @@ class Server {
                 out.println("Signed up Successfully!!!");
                 out.println("Hello " + ans[1]);
                 userId = ans[2];
-                menu(out, in);
+                menu();
             } else {
                 out.println("Error: " + ans[1] + " " + ans[2]);
             }
 
         }
 
-        private void logIn(PrintWriter out, BufferedReader in) throws IOException {
+        private void logIn() throws IOException {
             String password;
             String username;
             out.println("Please Enter Username and Password");
@@ -141,27 +128,29 @@ class Server {
                 out.println("Signed in successfully!");
                 out.println("Hello " + ans[1]);
                 userId = ans[2];
-                menu(out, in);
+                menu();
             } else {
                 out.println("Error: " + ans[1] + " " + ans[2]);
             }
         }
 
-        private void menu(PrintWriter out, BufferedReader in) throws IOException {
+        private void menu() throws IOException {
             String choice;
             while (true) {
+                out.println("0) Log out");
                 out.println("1) Add a book");
                 out.println("2) Remove a book");
-                out.println("z) option z");
-                out.println("x) Log out");
+                out.println("3) View Library");
                 out.println("Enter Your Choice: ");
                 out.println("x");
                 choice = in.readLine();
                 if (choice.equals("1")) {
-                    addBook(out, in);
+                    addBook();
                 } else if (choice.equals("2")) {
-                    removeBook(out, in);
-                } else if (choice.equals("x")) {
+                    removeBook();
+                } else if (choice.equals("3")) {
+                    viewLibrary();
+                } else if (choice.equals("0")) {
                     break;
                 } else {
                     out.println("Wrong Input, Please Try Again");
@@ -169,8 +158,8 @@ class Server {
             }
         }
 
-        //(String title, String author, String genre, int price,int quantity,String owner){
-        private void addBook(PrintWriter out, BufferedReader in) throws IOException {
+
+        private void addBook() throws IOException {
             String title, author, genre;
             int price, quantity;
             out.println("Please enter book details");
@@ -191,13 +180,68 @@ class Server {
             quantity = Integer.parseInt(in.readLine());
             String[] ans = db.addBook(title, author, genre, price, quantity, userId);
             if (ans[0].equals("true"))
-                out.println(ans[2] + " added successfully!");
+                out.println(ans[2]);
             else
                 out.println("Error: " + ans[1] + " " + ans[2]);
         }
 
-        private void removeBook(PrintWriter out, BufferedReader in) {
+        private void removeBook() throws IOException {
+            String[] books = db.viewMyBooks(userId);
+            int bookid;
+            if (books.length == 0)
+                out.println("No books to view!");
+            else {
+                for (int i = 0; i < books.length; i++) {
+                    out.println(i + 1 + ") " + books[i]);
+                }
+                out.println("Choose a book to remove or 0 (Zero) to go back: ");
+                out.println("x");
+                bookid = Integer.parseInt(in.readLine());
+                if (bookid == 0) return;
+                String[] ans = db.removeBook(books[bookid - 1]);
+                if (ans[0].equals("true"))
+                    out.println(ans[2]);
+                else
+                    out.println("Error: " + ans[1] + " " + ans[2]);
+            }
+        }
 
+        private void viewLibrary() throws IOException {
+            String[] books = db.viewBooks();
+            int bookid;
+            if (books.length == 0)
+                out.println("No books to view!");
+            else {
+                for (int i = 0; i < books.length; i++) {
+                    out.println(i + 1 + ") " + books[i]);
+                }
+                out.println("Choose a book to view or 0 (Zero) to go back:  ");
+                out.println("x");
+                bookid = Integer.parseInt(in.readLine());
+                if (bookid == 0) return;
+                viewBook(books[bookid - 1]);
+            }
+        }
+
+        private void viewBook(String bookName) throws IOException {
+            String[] bookDetail = db.viewBookDetails(bookName);
+            String choice;
+            out.println("Title: " + bookDetail[0]);
+            out.println("Author: " + bookDetail[1]);
+            out.println("Genre: " + bookDetail[2]);
+            out.println("Price: " + bookDetail[3]);
+            out.println("Quantity: " + bookDetail[4]);
+            out.println("Book Owner: " + bookDetail[5]);
+            out.println("Do you want to Request " + bookDetail[0] + "? (enter 'yes' or 'no')");
+            out.println("Your Answer: ");
+            out.println("x");
+            choice = in.readLine();
+            if (choice.equals("yes")) {
+                //TODO: REQUEST TO BORROW BOOK HERE
+                out.println("Book requested!");
+            }
         }
     }
+
+
 }
