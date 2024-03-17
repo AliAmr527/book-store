@@ -150,7 +150,11 @@ public class mongoConnection {
         return loopDocuments(cursor,res);
     }
 
-    public String viewBookDetails(String title){
+    public String[] bookDetails(){
+
+    }
+
+    public String[] viewBookDetails(String title){
         Bson projectionFields = Projections.fields(Projections.excludeId());
         Document doc = colBooks.find(eq("title",title)).projection(projectionFields).first();
         //title
@@ -163,20 +167,23 @@ public class mongoConnection {
         String s5 = doc.toJson().split(": \"")[3];
         String s6 = s5.split("\",")[0];
         //price
-        String s7 = doc.toJson().split(": \"")[4];
-        String s8 = s7.split("\",")[0];
+        String s7 = s5.split(": ")[1];
+        String s8 = s7.split(",")[0];
         //quantity
-//        String s9 = doc.toJson().split(": \"")[5];
-//        String s10 = s9.split("\",")[0];
-//        //owner
-//        String s11 = doc.toJson().split(": \"")[5];
-//        String s12 = s11.split("\",")[0];
+        String s9 = s5.split(": ")[2];
+        String s10 = s9.split(",")[0];
+        //owner
+        String s11 = doc.toJson().split(": \"")[4];
+        String s12 = s11.split("\"}")[0];
 
-        String[] res = {s2,s4,s6,s8};
+        String[] res = {s2,s4,s6,s8,s10,s12};
 
-        return s6;
+        return res;
     }
 
+    public String[] searchBook(){
+
+    }
 
 //        Document sampleDoc = new Document("_id","4").append("name","john smith").append("books", Arrays.asList("book1","book2"));
 //        Document[] docs = col.find();
