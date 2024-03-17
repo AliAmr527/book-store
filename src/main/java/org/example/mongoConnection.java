@@ -121,13 +121,17 @@ public class mongoConnection {
     }
 
     public String[] viewMyBooks(String userName){
-        MongoCursor<Document> cursor = colBooks.find(eq("owner",userName)).iterator();
+        Bson projectionFields = Projections.fields(Projections.include("title"),Projections.excludeId());
+        MongoCursor<Document> cursor = colBooks.find(eq("owner",userName)).projection(projectionFields).iterator();
         Bson query = eq("owner",userName);
         long matchedCount = colBooks.countDocuments(query);
         int count = 0;
         String [] res = new String[(int) matchedCount];
+
         while (cursor.hasNext()) {
-            res[count] = cursor.next().toJson();
+            String s = cursor.next().toJson().split(": \"")[1];
+            String s2 = s.split("\"")[0];
+            res[count] = s2;
             count++;
         }
         if(res.length==0){
@@ -135,6 +139,8 @@ public class mongoConnection {
         }
         return res;
     }
+
+
 
 
 //        Document sampleDoc = new Document("_id","4").append("name","john smith").append("books", Arrays.asList("book1","book2"));
