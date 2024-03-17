@@ -45,35 +45,58 @@ public class mongoConnection {
         colRequests = db.getCollection("requests");
     }
 
-    public String login(String username, String password) {
+    public String[] getUserNameAndName(Document user){
+        //this for name
+        String s = user.toJson().split(",")[1];
+        String s2 = s.split(": \"")[1];
+        String s3 = s2.split("\"")[0];
+
+        //this for username
+        String s4 = user.toJson().split(",")[2];
+        String s5 = s4.split(": \"")[1];
+        String s6 = s5.split("\"")[0];
+
+        return new String[]{"true",s3,s6};
+    }
+
+    public String[] login(String username, String password) {
+        Document doc = colUsers.find(eq("username", username)).first();
+        String [] msg = {"false","404","username not found"};
+        if (doc == null){
+            return msg;
+        }
         DBObject condition1 = new BasicDBObject("username", username).append("password", password);
         BasicDBList search = new BasicDBList();
         search.add(condition1);
-        Bson projectionFields = Projections.fields(Projections.include("_id"));
+        Bson projectionFields = Projections.fields(Projections.include("username","name"));
         DBObject query = new BasicDBObject("$and", search);
-        Document doc = colUsers.find((Bson) query).projection(projectionFields).first();
-        System.out.println(username);
-        if (doc != null) {
-            return doc.toJson();
-        } else {
-            return "false";
+        Document user = colUsers.find((Bson) query).projection(projectionFields).first();
+
+        String [] msg2 = {"false","401","wrong password"};
+        if(user == null){
+            return msg2;
         }
+
+        String [] stringArray = getUserNameAndName(user);
+        return stringArray;
     }
 
-    public String register(String name, String username, String password) {
+    public String[] register(String name, String username, String password) {
         Document doc = colUsers.find(eq("username", username)).first();
+        String [] msg = {"false","409","duplicate username"};
         if (doc != null){
-            return "false";
+            return msg;
         }
         Document sampleDoc = new Document().append("name",name).append("username",username).append("password",password);
         colUsers.insertOne(sampleDoc);
-        Bson projectionFields = Projections.fields(Projections.include("username"));
+        Bson projectionFields = Projections.fields(Projections.include("username","name"));
         Document user = colUsers.find(eq("username", username)).projection(projectionFields).first();
         assert user != null;
-        String s = user.toJson().split(",")[1];
-        String s2 = s.split(": \"")[1];
-        String s3 = s2.split("\"}")[0];
-        return s3;
+
+
+        String [] stringArray = getUserNameAndName(user);
+
+        return stringArray;
     }
     //title author genre price quantity list of clients
     public boolean addBook(String title, String author, String genre, int price,int quantity){
