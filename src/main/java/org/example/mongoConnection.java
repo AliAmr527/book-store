@@ -122,10 +122,18 @@ public class mongoConnection {
 
     public String[] viewMyBooks(String userName){
         MongoCursor<Document> cursor = colBooks.find(eq("owner",userName)).iterator();
-        String [] res = new String[]{};
+        Bson query = eq("owner",userName);
+        long matchedCount = colBooks.countDocuments(query);
+        int count = 0;
+        String [] res = new String[(int) matchedCount];
         while (cursor.hasNext()) {
-            res[1] = cursor.next().toJson();
+            res[count] = cursor.next().toJson();
+            count++;
         }
+        if(res.length==0){
+            return msg("false","404","no books found");
+        }
+        return res;
     }
 
 
