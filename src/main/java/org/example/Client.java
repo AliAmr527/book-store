@@ -19,7 +19,14 @@ class Client {
             Scanner sc = new Scanner(System.in);
             String line = null;
             while (!"exit".equalsIgnoreCase(line)) {
-                System.out.println(in.readLine());
+                String input, sent = "" ;
+                input = in.readLine();
+                while (!input.equals("x")){
+                    sent += input+ "\n";
+                    input = in.readLine();
+                }
+                System.out.print(sent);
+//                System.out.println(in.readLine());
                 // reading from user
                 line = sc.nextLine();
                 // sending the user input to server

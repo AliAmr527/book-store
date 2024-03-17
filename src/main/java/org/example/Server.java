@@ -47,19 +47,18 @@ class Server {
         }
     }
 
-    // ClientHandler class
     private static class ClientHandler implements Runnable {
         mongoConnection db;
         private final Socket clientSocket;
         boolean closeTerm = true;
         boolean isLoggedIn = false;
         String userId;
-        // Constructor
+
         public ClientHandler(Socket socket) {
             this.clientSocket = socket;
             db = new mongoConnection();
         }
-        
+
         public void run() {
             PrintWriter out = null;
             BufferedReader in = null;
@@ -69,28 +68,23 @@ class Server {
                 // get the input stream of client
                 in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 String choice;
-                String email, password, name, line;
-                while (closeTerm){
-                    out.println("1) Log in 2) Sign up 3) Exit Choice: ");
+                while (closeTerm) {
+                    out.println("1) Log in");
+                    out.println("2) Sign up");
+                    out.println("3) Exit");
+                    out.println("Enter Your Choice: ");
+                    out.println("x");
                     choice = in.readLine();
-                    out.println(choice);
-                    int temp = Integer.parseInt(choice);
-                    if(choice == "1"){
+                    if (choice.equals("1")) {
                         logIn(out, in);
-                    } else if (choice == "2") {
+                    } else if (choice.equals("2")) {
                         signUp(out, in);
-                    }else if (choice == "3") {
+                    } else if (choice.equals("3")) {
                         closeTerm = false;
-                    }else {
+                    } else {
                         out.println("Wrong Input, Please Try Again");
                     }
                 }
-//                while ((line = in.readLine()) != null) {
-//                    // writing the received message from
-//                    // client
-//                    System.out.printf("Sent from the client: %s\n",line);
-//                    out.println(line);
-//                }
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
@@ -108,35 +102,101 @@ class Server {
             }
         }
 
-        private static void signUp(PrintWriter out, BufferedReader in) throws IOException {
-            String name;
-            String email;
-            String password;
-            out.println("Please Enter Name, Email and Password \n Name: ");
+        private void signUp(PrintWriter out, BufferedReader in) throws IOException {
+            String name, username, password;
+            out.println("Please enter your details to sign up");
+            out.println("Name:");
+            out.println("x");
             name = in.readLine();
-            out.println("Email: ");
-            email = in.readLine();
-            out.println("Password: ");
+            out.println("Username:");
+            out.println("x");
+            username = in.readLine();
+            out.println("Password:");
+            out.println("x");
             password = in.readLine();
+            String[] ans = db.register(name, username, password);
+            if (!ans[0].equals("false")) {
+                out.println("Signed up Successfully!!!");
+                out.println("Hello " + ans[1]);
+                userId = ans[2];
+                menu(out, in);
+            } else {
+                out.println("Error: " + ans[1] + " " + ans[2]);
+            }
+
         }
 
         private void logIn(PrintWriter out, BufferedReader in) throws IOException {
             String password;
-            String email;
-            while (!isLoggedIn){
-                out.println("Please Enter Email and Password \n Email: ");
-                email = in.readLine();
-                out.println("Password: ");
-                password = in.readLine();
-                String user = db.login(email,password);
-                if (user != null){
-                    out.println("Welcome User");
-                    //TODO: SHOW MENU.
-                }
-                else{
-                    out.println("No User Found With these Credintials");
+            String username;
+            out.println("Please Enter Username and Password");
+            out.println("Username: ");
+            out.println("x");
+            username = in.readLine();
+            out.println("Password: ");
+            out.println("x");
+            password = in.readLine();
+            String[] ans = db.login(username, password);
+            if (ans[0].equals("true")) {
+                out.println("Signed in successfully!");
+                out.println("Hello " + ans[1]);
+                userId = ans[2];
+                menu(out, in);
+            } else {
+                out.println("Error: " + ans[1] + " " + ans[2]);
+            }
+        }
+
+        private void menu(PrintWriter out, BufferedReader in) throws IOException {
+            String choice;
+            while (true) {
+                out.println("1) Add a book");
+                out.println("2) Remove a book");
+                out.println("z) option z");
+                out.println("x) Log out");
+                out.println("Enter Your Choice: ");
+                out.println("x");
+                choice = in.readLine();
+                if (choice.equals("1")) {
+                    addBook(out, in);
+                } else if (choice.equals("2")) {
+                    removeBook(out, in);
+                } else if (choice.equals("x")) {
+                    break;
+                } else {
+                    out.println("Wrong Input, Please Try Again");
                 }
             }
+        }
+
+        //(String title, String author, String genre, int price,int quantity,String owner){
+        private void addBook(PrintWriter out, BufferedReader in) throws IOException {
+            String title, author, genre;
+            int price, quantity;
+            out.println("Please enter book details");
+            out.println("Book title: ");
+            out.println("x");
+            title = in.readLine();
+            out.println("Book author: ");
+            out.println("x");
+            author = in.readLine();
+            out.println("Book genre: ");
+            out.println("x");
+            genre = in.readLine();
+            out.println("Book price: ");
+            out.println("x");
+            price = Integer.parseInt(in.readLine());
+            out.println("Book quantity: ");
+            out.println("x");
+            quantity = Integer.parseInt(in.readLine());
+            String[] ans = db.addBook(title, author, genre, price, quantity, userId);
+            if (ans[0].equals("true"))
+                out.println(ans[2] + " added successfully!");
+            else
+                out.println("Error: " + ans[1] + " " + ans[2]);
+        }
+
+        private void removeBook(PrintWriter out, BufferedReader in) {
 
         }
     }
