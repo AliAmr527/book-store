@@ -36,7 +36,7 @@ public class mongoConnection {
 
     public mongoConnection() {
         ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger("org.mongodb.driver").setLevel(Level.OFF);
-        connectionString = new ConnectionString("mongodb://localhost:27017/bookStore");
+        connectionString = new ConnectionString("mongodb+srv://reaper9027:<password>@cluster0.rsnqrli.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0");
         mongoClient = MongoClients.create(connectionString);
         db = mongoClient.getDatabase("bookStore");
         colUsers = db.getCollection("users");
@@ -84,6 +84,10 @@ public class mongoConnection {
     public boolean removeBook(String title){
         Bson query = eq("title",title);
         DeleteResult result = colBooks.deleteOne(query);
+        System.out.println(result);
+        if(result.getDeletedCount() > 0){
+
+        }
         return true;
     }
 
