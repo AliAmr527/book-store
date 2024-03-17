@@ -97,14 +97,14 @@ public class mongoConnection {
         return getUserNameAndName(user);
     }
     //title author genre price quantity list of clients
-    public String[] addBook(String title, String author, String genre, int price,int quantity){
+    public String[] addBook(String title, String author, String genre, int price,int quantity,String owner){
         Document doc = colBooks.find(eq("title", title)).first();
         
         if (doc != null){
             return msg("false","409","duplicate book title");
         }
         Document sampleDoc = new Document().append("title",title).append("author",author).append("genre",genre)
-                .append("price",price).append("quantity",quantity);
+                .append("price",price).append("quantity",quantity).append("owner",owner);
         colBooks.insertOne(sampleDoc);
         
         return msg("true","200","book added successfully!");
@@ -118,6 +118,14 @@ public class mongoConnection {
             return msg("false","404","couldn't find book");
         }
         return msg("true","200","book deleted successfully");
+    }
+
+    public String[] viewMyBooks(String userName){
+        MongoCursor<Document> cursor = colBooks.find(eq("owner",userName)).iterator();
+        String [] res = new String[]{};
+        while (cursor.hasNext()) {
+            res[1] = cursor.next().toJson();
+        }
     }
 
 
