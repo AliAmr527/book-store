@@ -36,7 +36,7 @@ public class mongoConnection {
 
     public mongoConnection() {
         ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger("org.mongodb.driver").setLevel(Level.OFF);
-        connectionString = new ConnectionString("mongodb+srv://reaper9027:<password>@cluster0.rsnqrli.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0");
+        connectionString = new ConnectionString("mongodb+srv://reaper9027:ZYfH3T09JcNGb8MR@cluster0.vreqasy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0");
         mongoClient = MongoClients.create(connectionString);
         db = mongoClient.getDatabase("bookStore");
         colUsers = db.getCollection("users");
@@ -52,7 +52,7 @@ public class mongoConnection {
         Bson projectionFields = Projections.fields(Projections.include("_id"));
         DBObject query = new BasicDBObject("$and", search);
         Document doc = colUsers.find((Bson) query).projection(projectionFields).first();
-
+        System.out.println(email);
         if (doc != null) {
             return doc.toJson();
         } else {
