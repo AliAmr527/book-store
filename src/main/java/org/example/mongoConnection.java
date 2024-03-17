@@ -181,39 +181,44 @@ public class mongoConnection {
         return bookDetails(doc);
     }
 
-    public String[][] BookByTitle(String title){
+    public String[][] bookByTitle(String title){
         Bson projectionFields = Projections.fields(Projections.excludeId());
         MongoCursor<Document> cursor = colBooks.find(eq("title",title)).projection(projectionFields).iterator();
-        long matchedCount = colBooks.countDocuments();
+        long matchedCount = colBooks.countDocuments(eq("title",title));
         String [][] res = new String[(int) matchedCount][6];
         int count =0;
+
         while (cursor.hasNext()) {
-            String [] temp = bookDetails(cursor.next());
-            for (int i = 0; i < 5; i++) {
-                res[count][i] = temp[i];
+            String [] temp;
+            temp = bookDetails(cursor.next());
+            for (int i = 0; i <= 5; i++) {
+                if(temp[i]!=null){
+                    res[count][i] = temp[i];
+                }
             }
             count++;
         }
-
         return res;
     }
 
-    public String[] BookByAuthor(String author){
+    public String[][] bookByAuthor(String author){
         Bson projectionFields = Projections.fields(Projections.excludeId());
         MongoCursor<Document> cursor = colBooks.find(eq("author",author)).projection(projectionFields).iterator();
-        long matchedCount = colBooks.countDocuments();
+        long matchedCount = colBooks.countDocuments(eq("author",author));
         String [][] res = new String[(int) matchedCount][6];
         int count =0;
+
         while (cursor.hasNext()) {
-            String [] temp = bookDetails(cursor.next());
-            System.out.println(cursor.next());
-            for (int i = 0; i < 5; i++) {
-                res[count][i] = temp[i];
+            String [] temp;
+            temp = bookDetails(cursor.next());
+            for (int i = 0; i <= 5; i++) {
+                if(temp[i]!=null){
+                    res[count][i] = temp[i];
+                }
             }
             count++;
         }
-        String [] arr= new String[]{};
-        return arr;
+        return res;
     }
 
 //        Document sampleDoc = new Document("_id","4").append("name","john smith").append("books", Arrays.asList("book1","book2"));
