@@ -27,16 +27,17 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import static org.example.mongoConnection.getDb;
 
 public class DbMethods {
     MongoCollection<Document> colUsers;
     MongoCollection<Document> colBooks;
     MongoCollection<Document> colRequests;
+    mongoConnection db;
     public DbMethods() {
-        colUsers = getDb().getCollection("users");
-        colBooks = getDb().getCollection("books");
-        colRequests = getDb().getCollection("requests");
+        db = new mongoConnection();
+        colUsers = mongoConnection.getDb().getCollection("users");
+        colBooks = mongoConnection.getDb().getCollection("books");
+        colRequests = mongoConnection.getDb().getCollection("requests");
     }
 
     public Document insertTest(String title, String author, String genre, int price, int quantity, String owner,String[] userList){
@@ -241,6 +242,37 @@ public class DbMethods {
         MongoCursor<Document> cursor = colBooks.find(eq("genre", genre)).projection(projectionFields).iterator();
         long matchedCount = colBooks.countDocuments(eq("genre", genre));
         return loopDocuments2D(cursor, (int) matchedCount);
+    }
+
+    public String submitRequest(String title,String borrower){
+        Bson projectionFields = Projections.fields(Projections.excludeId());
+        Document doc = colBooks.find(eq("title", title)).projection(projectionFields).first();
+        //TODO:check if book exists
+        //lender
+        String s11 = doc.toJson().split(": \"")[4];
+        String s12 = s11.split("\"}")[0];
+        //quantity
+        String s5 = doc.toJson().split(": \"")[3];
+        String s6 = s5.split("\",")[0];
+
+        DBObject condition1 = new BasicDBObject("username", borrower).append("username", s12);
+        BasicDBList search = new BasicDBList();
+        search.add(condition1);
+
+        DBObject query = new BasicDBObject("$and", search);
+
+        Document checkUsers = colUsers.find((Bson) query).first();
+
+//        if(checkUsers == null){
+//            return msg("false", "404", "lender or borrower not found");
+//        }
+
+//        Document sampleDoc = new Document().append("bookTitle", title).append("lender", s12).append("borrower",borrower).
+//                append("status","pending");
+//        colRequests.insertOne(sampleDoc);
+
+//        return msg("true","200","book requested successfully");
+        return s6;
     }
 
 //        Document sampleDoc = new Document("_id","4").append("name","john smith").append("books", Arrays.asList("book1","book2"));
