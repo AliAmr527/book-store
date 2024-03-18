@@ -45,11 +45,11 @@ public class mongoConnection {
         colRequests = db.getCollection("requests");
     }
 
-    public String[] msg(String flag,String code,String msg){
-        return new String[]{flag,code,msg};
+    public String[] msg(String flag, String code, String msg) {
+        return new String[]{flag, code, msg};
     }
-    
-    public String[] getUserNameAndName(Document user){
+
+    public String[] getUserNameAndName(Document user) {
         //this for name
         String s = user.toJson().split(",")[1];
         String s2 = s.split(": \"")[1];
@@ -60,24 +60,24 @@ public class mongoConnection {
         String s5 = s4.split(": \"")[1];
         String s6 = s5.split("\"")[0];
 
-        return new String[]{"true",s3,s6};
+        return new String[]{"true", s3, s6};
     }
 
     public String[] login(String username, String password) {
         Document doc = colUsers.find(eq("username", username)).first();
-        if (doc == null){
-            return msg("false","404","username not found");
+        if (doc == null) {
+            return msg("false", "404", "username not found");
         }
-        
+
         DBObject condition1 = new BasicDBObject("username", username).append("password", password);
         BasicDBList search = new BasicDBList();
         search.add(condition1);
-        Bson projectionFields = Projections.fields(Projections.include("username","name"));
+        Bson projectionFields = Projections.fields(Projections.include("username", "name"));
         DBObject query = new BasicDBObject("$and", search);
         Document user = colUsers.find((Bson) query).projection(projectionFields).first();
 
-        if(user == null){
-            return msg("false","401","wrong password");
+        if (user == null) {
+            return msg("false", "401", "wrong password");
         }
 
         return getUserNameAndName(user);
@@ -85,42 +85,43 @@ public class mongoConnection {
 
     public String[] register(String name, String username, String password) {
         Document doc = colUsers.find(eq("username", username)).first();
-        if (doc != null){
-            return msg("false","409","duplicate username");
+        if (doc != null) {
+            return msg("false", "409", "duplicate username");
         }
-        Document sampleDoc = new Document().append("name",name).append("username",username).append("password",password);
+        Document sampleDoc = new Document().append("name", name).append("username", username).append("password", password);
         colUsers.insertOne(sampleDoc);
-        Bson projectionFields = Projections.fields(Projections.include("username","name"));
+        Bson projectionFields = Projections.fields(Projections.include("username", "name"));
         Document user = colUsers.find(eq("username", username)).projection(projectionFields).first();
         assert user != null;
 
         return getUserNameAndName(user);
     }
+
     //title author genre price quantity list of clients
-    public String[] addBook(String title, String author, String genre, int price,int quantity,String owner){
+    public String[] addBook(String title, String author, String genre, int price, int quantity, String owner) {
         Document doc = colBooks.find(eq("title", title)).first();
-        
-        if (doc != null){
-            return msg("false","409","duplicate book title");
+
+        if (doc != null) {
+            return msg("false", "409", "duplicate book title");
         }
-        Document sampleDoc = new Document().append("title",title).append("author",author).append("genre",genre)
-                .append("price",price).append("quantity",quantity).append("owner",owner);
+        Document sampleDoc = new Document().append("title", title).append("author", author).append("genre", genre)
+                .append("price", price).append("quantity", quantity).append("owner", owner);
         colBooks.insertOne(sampleDoc);
-        
-        return msg("true","200","book added successfully!");
+
+        return msg("true", "200", "book added successfully!");
     }
 
-    public String[] removeBook(String title){
-        Bson query = eq("title",title);
+    public String[] removeBook(String title) {
+        Bson query = eq("title", title);
         DeleteResult result = colBooks.deleteOne(query);
         System.out.println(result);
-        if(result.getDeletedCount() == 0){
-            return msg("false","404","couldn't find book");
+        if (result.getDeletedCount() == 0) {
+            return msg("false", "404", "couldn't find book");
         }
-        return msg("true","200","book deleted successfully");
+        return msg("true", "200", "book deleted successfully");
     }
 
-    public String[] loopDocuments(MongoCursor<Document> cursor, String [] res){
+    public String[] loopDocuments(MongoCursor<Document> cursor, String[] res) {
         int count = 0;
         while (cursor.hasNext()) {
             String s = cursor.next().toJson().split(": \"")[1];
@@ -132,26 +133,26 @@ public class mongoConnection {
     }
 
 
-    public String[] viewMyBooks(String userName){
-        Bson projectionFields = Projections.fields(Projections.include("title"),Projections.excludeId());
-        MongoCursor<Document> cursor = colBooks.find(eq("owner",userName)).projection(projectionFields).iterator();
-        Bson query = eq("owner",userName);
+    public String[] viewMyBooks(String userName) {
+        Bson projectionFields = Projections.fields(Projections.include("title"), Projections.excludeId());
+        MongoCursor<Document> cursor = colBooks.find(eq("owner", userName)).projection(projectionFields).iterator();
+        Bson query = eq("owner", userName);
         long matchedCount = colBooks.countDocuments(query);
-        String [] res = new String[(int) matchedCount];
+        String[] res = new String[(int) matchedCount];
 
-        return loopDocuments(cursor,res);
+        return loopDocuments(cursor, res);
     }
 
-    public String[] viewBooks(){
-        Bson projectionFields = Projections.fields(Projections.include("title"),Projections.excludeId());
+    public String[] viewBooks() {
+        Bson projectionFields = Projections.fields(Projections.include("title"), Projections.excludeId());
         MongoCursor<Document> cursor = colBooks.find().projection(projectionFields).iterator();
         long matchedCount = colBooks.countDocuments();
-        String [] res = new String[(int) matchedCount];
+        String[] res = new String[(int) matchedCount];
 
-        return loopDocuments(cursor,res);
+        return loopDocuments(cursor, res);
     }
 
-    public String[] bookDetails(Document doc){
+    public String[] bookDetails(Document doc) {
         //title
         String s = doc.toJson().split(": \"")[1];
         String s2 = s.split("\",")[0];
@@ -171,25 +172,26 @@ public class mongoConnection {
         String s11 = doc.toJson().split(": \"")[4];
         String s12 = s11.split("\"}")[0];
 
-        return new String[]{s2,s4,s6,s8,s10,s12};
+        return new String[]{s2, s4, s6, s8, s10, s12};
     }
 
-    public String[] viewBookDetails(String title){
+    public String[] viewBookDetails(String title) {
         Bson projectionFields = Projections.fields(Projections.excludeId());
-        Document doc = colBooks.find(eq("title",title)).projection(projectionFields).first();
+        Document doc = colBooks.find(eq("title", title)).projection(projectionFields).first();
 
+        assert doc != null;
         return bookDetails(doc);
     }
 
     private String[][] loopDocuments2D(MongoCursor<Document> cursor, int matchedCount) {
-        String [][] res = new String[matchedCount][6];
-        int count =0;
+        String[][] res = new String[matchedCount][6];
+        int count = 0;
 
         while (cursor.hasNext()) {
-            String [] temp;
+            String[] temp;
             temp = bookDetails(cursor.next());
             for (int i = 0; i <= 5; i++) {
-                if(temp[i]!=null){
+                if (temp[i] != null) {
                     res[count][i] = temp[i];
                 }
             }
@@ -198,17 +200,17 @@ public class mongoConnection {
         return res;
     }
 
-    public String[][] bookByTitle(String title){
+    public String[][] bookByTitle(String title) {
         Bson projectionFields = Projections.fields(Projections.excludeId());
-        MongoCursor<Document> cursor = colBooks.find(eq("title",title)).projection(projectionFields).iterator();
-        long matchedCount = colBooks.countDocuments(eq("title",title));
+        MongoCursor<Document> cursor = colBooks.find(eq("title", title)).projection(projectionFields).iterator();
+        long matchedCount = colBooks.countDocuments(eq("title", title));
         return loopDocuments2D(cursor, (int) matchedCount);
     }
 
-    public String[][] bookByAuthor(String author){
+    public String[][] bookByAuthor(String author) {
         Bson projectionFields = Projections.fields(Projections.excludeId());
-        MongoCursor<Document> cursor = colBooks.find(eq("author",author)).projection(projectionFields).iterator();
-        long matchedCount = colBooks.countDocuments(eq("author",author));
+        MongoCursor<Document> cursor = colBooks.find(eq("author", author)).projection(projectionFields).iterator();
+        long matchedCount = colBooks.countDocuments(eq("author", author));
         return loopDocuments2D(cursor, (int) matchedCount);
     }
 
