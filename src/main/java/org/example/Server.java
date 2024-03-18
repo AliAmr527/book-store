@@ -1,7 +1,11 @@
 package org.example;
 
-import java.io.*;
-import java.net.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 class Server {
     public static void main(String[] args) {
@@ -173,7 +177,6 @@ class Server {
             }
         }
 
-
         private void addBook() throws IOException {
             String title, author, genre;
             int price, quantity;
@@ -194,17 +197,14 @@ class Server {
             out.println("x");
             quantity = Integer.parseInt(in.readLine());
             String[] ans = db.addBook(title, author, genre, price, quantity, userId);
-            if (ans[0].equals("true"))
-                out.println(ans[2]);
-            else
-                out.println("Error: " + ans[1] + " " + ans[2]);
+            if (ans[0].equals("true")) out.println(ans[2]);
+            else out.println("Error: " + ans[1] + " " + ans[2]);
         }
 
         private void removeBook() throws IOException {
             String[] books = db.viewMyBooks(userId);
             int bookId;
-            if (books.length == 0)
-                out.println("No books to view!");
+            if (books.length == 0) out.println("No books to view!");
             else {
                 for (int i = 0; i < books.length; i++) {
                     out.println(i + 1 + ") " + books[i]);
@@ -214,18 +214,15 @@ class Server {
                 bookId = Integer.parseInt(in.readLine());
                 if (bookId == 0) return;
                 String[] ans = db.removeBook(books[bookId - 1]);
-                if (ans[0].equals("true"))
-                    out.println(ans[2]);
-                else
-                    out.println("Error: " + ans[1] + " " + ans[2]);
+                if (ans[0].equals("true")) out.println(ans[2]);
+                else out.println("Error: " + ans[1] + " " + ans[2]);
             }
         }
 
         private void viewLibrary() throws IOException {
             String[] books = db.viewBooks();
             int bookId;
-            if (books.length == 0)
-                out.println("No books to view!");
+            if (books.length == 0) out.println("No books to view!");
             else {
                 for (int i = 0; i < books.length; i++) {
                     out.println(i + 1 + ") " + books[i]);
@@ -262,31 +259,83 @@ class Server {
             out.println("Choose the search criteria");
             out.println("1) Title ");
             out.println("2) Author ");
-            out.println("3) Genra ");
+            out.println("3) Genre ");
+            out.println("Choice: ");
             out.println("x");
             choice = in.readLine();
             switch (choice) {
-                case "0":
-                    break;
                 case "1":
-                    addBook();
+                    searchByTitle();
                     break;
                 case "2":
-                    removeBook();
+                    searchByAuthor();
                     break;
                 case "3":
-                    viewLibrary();
+                    searchByGenre();
                     break;
-                case "4":
-                    searchBook();
-                    break;
-
                 default:
-                    out.println("Wrong Input, Please Try Again");
+                    out.println("Wrong Input!");
                     break;
             }
         }
+
+        private void searchByTitle() throws IOException {
+            String choice;
+            out.println("Enter the title you want to search for:");
+            out.println("Response: ");
+            out.println("x");
+            choice = in.readLine();
+            String[][] advBooks = db.bookByTitle(choice);
+            if (advBooks.length == 0) out.println("No books with that title!");
+            else {
+                viewBook2d(advBooks);
+            }
+        }
+
+        private void searchByAuthor() throws IOException {
+            String choice;
+            out.println("Enter the Author you want to search for:");
+            out.println("Response: ");
+            out.println("x");
+            choice = in.readLine();
+            String[][] advBooks = db.bookByAuthor(choice);
+            if (advBooks.length == 0) out.println("No books with that Author!");
+            else {
+                viewBook2d(advBooks);
+            }
+
+        }
+
+
+        private void searchByGenre() throws IOException {
+            String choice;
+            out.println("Enter the Genre you want to search for:");
+            out.println("Response: ");
+            out.println("x");
+            choice = in.readLine();
+            String[][] advBooks = db.bookByTitle(choice);
+            if (advBooks.length == 0) out.println("No books with that Genre!");
+            else {
+                viewBook2d(advBooks);
+            }
+
+        }
+
+        private void viewBook2d(String[][] advBooks) throws IOException {
+            int bookId;
+            for (int i = 0; i < advBooks.length; i++) {
+                out.println(i + 1 + ") " + advBooks[i][0]);
+                out.println("   Author: " + advBooks[i][1]);
+                out.println("   Genre: " + advBooks[i][2]);
+                out.println("   Price: " + advBooks[i][3]);
+                out.println("   Quantity: " + advBooks[i][4]);
+                out.println("   Book Owner: " + advBooks[i][5]);
+            }
+            out.println("Choose a book to view or 0 (Zero) to go back:  ");
+            out.println("x");
+            bookId = Integer.parseInt(in.readLine());
+            if (bookId == 0) return;
+            viewBook(advBooks[bookId - 1][0]);
+        }
     }
-
-
 }
