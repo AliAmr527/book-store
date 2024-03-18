@@ -3,11 +3,10 @@ package org.example;
 import static com.mongodb.client.model.Filters.eq;
 
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.regex.Pattern;
 
+import static com.mongodb.client.model.Filters.regex;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.mongodb.BasicDBList;
@@ -225,37 +224,47 @@ public class DbMethods {
 
     public String[][] bookByTitle(String title) {
         Bson projectionFields = Projections.fields(Projections.excludeId());
-        MongoCursor<Document> cursor = colBooks.find(eq("title", title)).projection(projectionFields).iterator();
-        long matchedCount = colBooks.countDocuments(eq("title", title));
+        Document query = new Document("title",title);
+        String pattern = ".*" + query.getString("title") + ".*";
+        MongoCursor<Document> cursor = colBooks.find(regex("title", pattern,"i")).projection(projectionFields).iterator();
+        long matchedCount = colBooks.countDocuments(regex("title", pattern,"i"));
         return loopDocuments2D(cursor, (int) matchedCount);
     }
 
     public String[][] bookByAuthor(String author) {
         Bson projectionFields = Projections.fields(Projections.excludeId());
-        MongoCursor<Document> cursor = colBooks.find(eq("author", author)).projection(projectionFields).iterator();
-        long matchedCount = colBooks.countDocuments(eq("author", author));
+        Document query = new Document("author",author);
+        String pattern = ".*" + query.getString("author") + ".*";
+        MongoCursor<Document> cursor = colBooks.find(regex("author", pattern,"i")).projection(projectionFields).iterator();
+        long matchedCount = colBooks.countDocuments(regex("author", pattern,"i"));
         return loopDocuments2D(cursor, (int) matchedCount);
     }
 
     public String[][] bookByGenre(String genre){
         Bson projectionFields = Projections.fields(Projections.excludeId());
-        MongoCursor<Document> cursor = colBooks.find(eq("genre", genre)).projection(projectionFields).iterator();
-        long matchedCount = colBooks.countDocuments(eq("genre", genre));
+        Document query = new Document("genre",genre);
+        String pattern = ".*" + query.getString("genre") + ".*";
+        MongoCursor<Document> cursor = colBooks.find(regex("genre", pattern,"i")).projection(projectionFields).iterator();
+        long matchedCount = colBooks.countDocuments(regex("genre", pattern,"i"));
         return loopDocuments2D(cursor, (int) matchedCount);
     }
 
-    public String submitRequest(String title,String borrower){
+    public String[] submitRequest(String title,String borrower){
         Bson projectionFields = Projections.fields(Projections.excludeId());
         Document doc = colBooks.find(eq("title", title)).projection(projectionFields).first();
         //TODO:check if book exists
         //lender
-        String s11 = doc.toJson().split(": \"")[4];
-        String s12 = s11.split("\"}")[0];
+        String s1 = doc.toJson().split(": \"")[4];
+        String lender = s1.split("\"}")[0];
         //quantity
-        String s5 = doc.toJson().split(": \"")[3];
-        String s6 = s5.split("\",")[0];
+        String s2 = doc.toJson().split(": ")[5];
+        String quantity = s2.split(",")[0];
 
-        DBObject condition1 = new BasicDBObject("username", borrower).append("username", s12);
+        if(Objects.equals(quantity, "0")){
+            return msg("false","404","not enough books available");
+        }
+
+        DBObject condition1 = new BasicDBObject("username", borrower);
         BasicDBList search = new BasicDBList();
         search.add(condition1);
 
@@ -263,16 +272,15 @@ public class DbMethods {
 
         Document checkUsers = colUsers.find((Bson) query).first();
 
-//        if(checkUsers == null){
-//            return msg("false", "404", "lender or borrower not found");
-//        }
+        if(checkUsers == null){
+            return msg("false", "404", "lender or borrower not found");
+        }
 
-//        Document sampleDoc = new Document().append("bookTitle", title).append("lender", s12).append("borrower",borrower).
-//                append("status","pending");
-//        colRequests.insertOne(sampleDoc);
+        Document sampleDoc = new Document().append("bookTitle", title).append("lender", lender).append("borrower",borrower).
+                append("status","pending");
+        colRequests.insertOne(sampleDoc);
 
-//        return msg("true","200","book requested successfully");
-        return s6;
+        return msg("true","200","book requested successfully");
     }
 
 //        Document sampleDoc = new Document("_id","4").append("name","john smith").append("books", Arrays.asList("book1","book2"));
