@@ -41,7 +41,7 @@ class Server {
         private final Socket clientSocket;
         PrintWriter out = null;
         BufferedReader in = null;
-        String userId;
+        String userName;
         DbMethods db;
 
         public ClientHandler(Socket socket) {
@@ -113,7 +113,7 @@ class Server {
             if (!ans[0].equals("false")) {
                 out.println("Signed up Successfully!!!");
                 out.println("Hello " + ans[1]);
-                userId = ans[2];
+                userName = ans[2];
                 menu();
             } else {
                 out.println("Error: " + ans[1] + " " + ans[2]);
@@ -135,8 +135,9 @@ class Server {
             if (ans[0].equals("true")) {
                 out.println("Signed in successfully!");
                 out.println("Hello " + ans[1]);
-                userId = ans[2];
-                menu();
+                userName = ans[2];
+                if (ans[0].equals("admin")) adminMenu();
+                else menu();
             } else {
                 out.println("Error: " + ans[1] + " " + ans[2]);
             }
@@ -146,11 +147,16 @@ class Server {
             String choice;
             label:
             while (true) {
+                out.println("--- P E R S O N A L ---");
                 out.println("0) Log out");
                 out.println("1) Add a book");
                 out.println("2) Remove a book");
-                out.println("3) View Library");
-                out.println("4) Search for a book");
+                out.println("3) Check Requests");
+                out.println("4) Request history");
+                out.println("");
+                out.println("--- L I B R A R Y ---");
+                out.println("5) View Library");
+                out.println("6) Search for a book");
                 out.println("Enter Your Choice: ");
                 out.println("x");
                 choice = in.readLine();
@@ -164,9 +170,15 @@ class Server {
                         removeBook();
                         break;
                     case "3":
-                        viewLibrary();
+                        checkRequests();
                         break;
                     case "4":
+                        requestHistory();
+                        break;
+                    case "5":
+                        viewLibrary();
+                        break;
+                    case "6":
                         searchBook();
                         break;
 
@@ -196,13 +208,13 @@ class Server {
             out.println("Book quantity: ");
             out.println("x");
             quantity = Integer.parseInt(in.readLine());
-            String[] ans = db.addBook(title, author, genre, price, quantity, userId);
+            String[] ans = db.addBook(title, author, genre, price, quantity, userName);
             if (ans[0].equals("true")) out.println(ans[2]);
             else out.println("Error: " + ans[1] + " " + ans[2]);
         }
 
         private void removeBook() throws IOException {
-            String[] books = db.viewMyBooks(userId);
+            String[] books = db.viewMyBooks(userName);
             int bookId;
             if (books.length == 0) out.println("No books to view!");
             else {
@@ -249,8 +261,9 @@ class Server {
             out.println("x");
             choice = in.readLine();
             if (choice.equals("yes")) {
-                //TODO: REQUEST TO BORROW BOOK HERE
-                out.println("Book requested!");
+                String[] ans = db.submitRequest(bookDetail[0], userName);
+                if (ans[0].equals("true")) out.println(ans[2]);
+                else out.println("Error: " + ans[1] + " " + ans[2]);
             }
         }
 
@@ -281,7 +294,7 @@ class Server {
 
         private void searchByTitle() throws IOException {
             String choice;
-            out.println("Enter the title you want to search for:");
+            out.println("Enter the title you want to search for");
             out.println("Response: ");
             out.println("x");
             choice = in.readLine();
@@ -294,7 +307,7 @@ class Server {
 
         private void searchByAuthor() throws IOException {
             String choice;
-            out.println("Enter the Author you want to search for:");
+            out.println("Enter the Author you want to search for");
             out.println("Response: ");
             out.println("x");
             choice = in.readLine();
@@ -306,14 +319,13 @@ class Server {
 
         }
 
-
         private void searchByGenre() throws IOException {
             String choice;
-            out.println("Enter the Genre you want to search for:");
+            out.println("Enter the Genre you want to search for");
             out.println("Response: ");
             out.println("x");
             choice = in.readLine();
-            String[][] advBooks = db.bookByTitle(choice);
+            String[][] advBooks = db.bookByGenre(choice);
             if (advBooks.length == 0) out.println("No books with that Genre!");
             else {
                 viewBook2d(advBooks);
@@ -331,11 +343,79 @@ class Server {
                 out.println("   Quantity: " + advBooks[i][4]);
                 out.println("   Book Owner: " + advBooks[i][5]);
             }
-            out.println("Choose a book to view or 0 (Zero) to go back:  ");
+            out.println("Choose a book to request or 0 (Zero) to go back:  ");
             out.println("x");
             bookId = Integer.parseInt(in.readLine());
             if (bookId == 0) return;
-            viewBook(advBooks[bookId - 1][0]);
+            String[] ans = db.submitRequest(advBooks[bookId - 1][0], userName);
+            if (ans[0].equals("true")) out.println(ans[2]);
+            else out.println("Error: " + ans[1] + " " + ans[2]);
+        }
+
+        private void checkRequests() throws IOException {
+            int requestId, choice;
+            String[] ans;
+            String[][] requests = db.viewMyRequests(userName);
+            for (int i = 0; i < requests.length; i++) {
+                out.println(i + 1 + ") " + requests[i][1]);
+                out.println("   Borrower: " + requests[i][2]);
+            }
+            out.println("Choose the request you want to handle or 0 (Zero) to go back:  ");
+            out.println("x");
+            requestId = Integer.parseInt(in.readLine());
+            if (requestId == 0) return;
+            out.println("1) Approve request");
+            out.println("2) Deny request");
+            out.println("x");
+            choice = Integer.parseInt(in.readLine());
+            if (choice == 1) ans = db.modifyRequest("accept", requests[requestId - 1][0]);
+            else ans = db.modifyRequest("deny", requests[requestId - 1][0]);
+            if (ans[0].equals("true")) out.println(ans[2]);
+            else out.println("Error: " + ans[1] + " " + ans[2]);
+        }
+
+        private void requestHistory() throws IOException {
+            //TODO: CHANGE FOR THE CORRECT METHOD FROM DB
+//            String[][] requests = db.requestHistory();
+//            for (String[] request : requests) {
+//                out.println(request[0] + 1 + ") " + request[1]);
+//                out.println("   Borrower: " + request[2]);
+//                out.println("   Status: " + request[3]);
+//            }
+
+        }
+
+        private void adminMenu() throws IOException {
+            String choice;
+            label:
+            while (true) {
+                out.println("--- A D M I N ---");
+                out.println("0) Log out");
+                out.println("1) View Library Stats");
+                out.println("Enter Your Choice: ");
+                out.println("x");
+                choice = in.readLine();
+                switch (choice) {
+                    case "0":
+                        break label;
+                    case "1":
+                        libraryStats();
+                        break;
+                    default:
+                        out.println("Wrong Input, Please Try Again");
+                        break;
+                }
+            }
+        }
+
+        private void libraryStats() throws IOException {
+            //TODO: CHANGE FOR THE CORRECT METHOD FROM DB
+//            String[] stats = db.getStats();
+//            for (int i = 0; i < stats.length; i++) {
+//                out.println("Current borrowed books: " + stats[0]);
+//                out.println("Available books: " + stats[1]);
+//                out.println("Requests: " + stats[2]);
+//            }
         }
     }
 }
