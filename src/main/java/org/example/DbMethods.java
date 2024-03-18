@@ -35,9 +35,9 @@ public class DbMethods {
     mongoConnection db;
     public DbMethods() {
         db = new mongoConnection();
-        colUsers = mongoConnection.getDb().getCollection("users");
-        colBooks = mongoConnection.getDb().getCollection("books");
-        colRequests = mongoConnection.getDb().getCollection("requests");
+        colUsers = db.getDb().getCollection("users");
+        colBooks = db.getDb().getCollection("books");
+        colRequests = db.getDb().getCollection("requests");
     }
 
     public Document insertTest(String title, String author, String genre, int price, int quantity, String owner,String[] userList){

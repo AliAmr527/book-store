@@ -11,7 +11,7 @@ public class mongoConnection {
     static MongoClient mongoClient;
     static MongoDatabase db;
 
-    public static MongoDatabase getDb() {
+    public MongoDatabase getDb() {
         return db;
     }
 
