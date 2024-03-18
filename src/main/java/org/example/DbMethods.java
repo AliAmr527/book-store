@@ -29,33 +29,8 @@ public class DbMethods {
         colRequests = db.getDb().getCollection("requests");
     }
 
-    public Document insertTest(String title, String author, String genre, int price, int quantity, String owner, String[] userList) {
-        Document sampleDoc = new Document().append("title", title).append("author", author).append("genre", genre)
-                .append("price", price).append("quantity", quantity).append("owner", owner).append("userList", Arrays.asList(userList));
-        colBooks.insertOne(sampleDoc);
-        Document book = colBooks.find(eq("title", title)).first();
-        return book;
-    }
 
-    public List<Document> getBooks() {
-        List<Document> books = new ArrayList<>();
-        Bson projectionFields = Projections.fields(Projections.include("username", "name"), Projections.excludeId());
-        for (Document bookDoc : colBooks.find()) {
-            List<String> userList = (List<String>) bookDoc.get("userList");
-            if (userList != null && !userList.isEmpty()) {
-                List<Document> users = new ArrayList<>();
-                for (String username : userList) {
-                    Document user = colUsers.find(new Document("username", username)).projection(projectionFields).first();
-                    if (user != null) {
-                        users.add(user);
-                    }
-                }
-                bookDoc.put("userList", users);
-            }
-            books.add(bookDoc);
-        }
-        return books;
-    }
+
 
     public String[] msg(String flag, String code, String msg) {
         return new String[]{flag, code, msg};
@@ -222,8 +197,7 @@ public class DbMethods {
 
     public String[][] bookByTitle(String title) {
         Bson projectionFields = Projections.fields(Projections.excludeId());
-        Document query = new Document("title", title);
-        String pattern = ".*" + query.getString("title") + ".*";
+        String pattern = ".*" + new Document("title", title).getString("title") + ".*";
         MongoCursor<Document> cursor = colBooks.find(regex("title", pattern, "i")).projection(projectionFields).iterator();
         long matchedCount = colBooks.countDocuments(regex("title", pattern, "i"));
         return loopDocuments2D(cursor, (int) matchedCount);
@@ -231,8 +205,7 @@ public class DbMethods {
 
     public String[][] bookByAuthor(String author) {
         Bson projectionFields = Projections.fields(Projections.excludeId());
-        Document query = new Document("author", author);
-        String pattern = ".*" + query.getString("author") + ".*";
+        String pattern = ".*" + new Document("author", author).getString("author") + ".*";
         MongoCursor<Document> cursor = colBooks.find(regex("author", pattern, "i")).projection(projectionFields).iterator();
         long matchedCount = colBooks.countDocuments(regex("author", pattern, "i"));
         return loopDocuments2D(cursor, (int) matchedCount);
@@ -240,8 +213,7 @@ public class DbMethods {
 
     public String[][] bookByGenre(String genre) {
         Bson projectionFields = Projections.fields(Projections.excludeId());
-        Document query = new Document("genre", genre);
-        String pattern = ".*" + query.getString("genre") + ".*";
+        String pattern = ".*" + new Document("genre", genre).getString("genre") + ".*";
         MongoCursor<Document> cursor = colBooks.find(regex("genre", pattern, "i")).projection(projectionFields).iterator();
         long matchedCount = colBooks.countDocuments(regex("genre", pattern, "i"));
         return loopDocuments2D(cursor, (int) matchedCount);
@@ -251,6 +223,7 @@ public class DbMethods {
         Bson projectionFields = Projections.fields(Projections.excludeId());
         Document doc = colBooks.find(eq("title", title)).projection(projectionFields).first();
         //lender
+        assert doc != null;
         String s1 = doc.toJson().split(": \"")[4];
         String lender = s1.split("\",")[0];
         //quantity
@@ -298,20 +271,38 @@ public class DbMethods {
         return new String[]{s2, s4, s6, s8};
     }
 
-    public String[][] viewMyRequests(String lender) {
-        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
-        MongoCursor<Document> cursor = colRequests.find(eq("lender", lender)).projection(projectionFields).iterator();
-        long matchedCount = colRequests.countDocuments();
-        String[][] res = new String[(int) matchedCount][3];
+    private String[][] getRequests(MongoCursor<Document> cursor, int matchedCount) {
+        String[][] res = new String[matchedCount][3];
         int count = 0;
         while (cursor.hasNext()) {
             String[] temp = myRequestDetails(cursor.next());
             for (int i = 0; i <= 2; i++) {
-                res[count][i] = temp[i];
+                if(Objects.equals(temp[3], "pending")){
+                    res[count][i] = temp[i];
+                }
             }
             count++;
         }
         return res;
+    }
+
+    public String[][] viewMyRequests(String lender) {
+        DBObject condition1 = new BasicDBObject("lender", lender).append("status", "pending");
+        BasicDBList search = new BasicDBList();
+        search.add(condition1);
+        DBObject query = new BasicDBObject("$and", search);
+
+        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
+        MongoCursor<Document> cursor = colRequests.find((Bson) query).projection(projectionFields).iterator();
+        long matchedCount = colRequests.countDocuments((Bson) query);
+        return getRequests(cursor, (int) matchedCount);
+    }
+
+    public String[][] viewMyRequestHistory(String lender) {
+        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
+        MongoCursor<Document> cursor = colRequests.find(eq("lender",lender)).projection(projectionFields).iterator();
+        long matchedCount = colRequests.countDocuments(eq("lender",lender));
+        return getRequests(cursor, (int) matchedCount);
     }
 
     public String[] modifyRequest(String option, String id) {
@@ -360,6 +351,40 @@ public class DbMethods {
         }
     }
 
+    public String[] libraryStats(){
+        long borrowedBooks = colRequests.countDocuments(eq("status","accepted"));
+        long requestsNumber = colRequests.countDocuments();
+        long availableBooks = 0;
+        Bson projectionFields = Projections.fields(Projections.excludeId());
+        for (Document document : colBooks.find().projection(projectionFields)) {
+            //quantity
+            String s2 = document.toJson().split(": ")[5];
+            String quantity = s2.split(",")[0];
+            availableBooks += Long.parseLong(quantity);
+        }
+        return new String[]{String.valueOf(borrowedBooks), String.valueOf(availableBooks), String.valueOf(requestsNumber)};
+    }
+
+
+    //    public List<Document> getBooks() {
+//        List<Document> books = new ArrayList<>();
+//        Bson projectionFields = Projections.fields(Projections.include("username", "name"), Projections.excludeId());
+//        for (Document bookDoc : colBooks.find()) {
+//            List<String> userList = (List<String>) bookDoc.get("userList");
+//            if (userList != null && !userList.isEmpty()) {
+//                List<Document> users = new ArrayList<>();
+//                for (String username : userList) {
+//                    Document user = colUsers.find(new Document("username", username)).projection(projectionFields).first();
+//                    if (user != null) {
+//                        users.add(user);
+//                    }
+//                }
+//                bookDoc.put("userList", users);
+//            }
+//            books.add(bookDoc);
+//        }
+//        return books;
+//    }
 
 
 //        Document sampleDoc = new Document("_id","4").append("name","john smith").append("books", Arrays.asList("book1","book2"));
