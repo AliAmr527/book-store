@@ -127,7 +127,7 @@ public class DbMethods {
             return msg("false", "409", "duplicate book title");
         }
         Document sampleDoc = new Document().append("title", title).append("author", author).append("genre", genre)
-                .append("price", price).append("quantity", quantity).append("owner", owner);
+                .append("price", price).append("quantity", quantity).append("owner", owner).append("userList", Collections.emptyList());
         colBooks.insertOne(sampleDoc);
 
         return msg("true", "200", "book added successfully!");
@@ -192,7 +192,7 @@ public class DbMethods {
         String s10 = s9.split(",")[0];
         //owner
         String s11 = doc.toJson().split(": \"")[4];
-        String s12 = s11.split("\"}")[0];
+        String s12 = s11.split("\",")[0];
 
         return new String[]{s2, s4, s6, s8, s10, s12};
     }
