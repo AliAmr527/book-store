@@ -12,9 +12,10 @@ public class Main {
 //        System.out.println(Arrays.toString(db.viewMyBooks("ahmedd")));
 //        System.out.println(Arrays.toString(db.viewBookDetails("to be")));
 //        System.out.println(Arrays.deepToString(db.bookByAuthor("ali")));
-        System.out.println(Arrays.deepToString(db2.bookByGenre("Horror")));
+//        System.out.println(Arrays.deepToString(db2.bookByGenre("Horror")));
         String [] userList = {"ali","hassan"};
 //        System.out.println(db2.insertTest("to be 4", "ali","horror",123,12,"ahmedd",userList));
-//        System.out.println(Arrays.toString(db2.submitRequest("to be", "ahmeddd")));
+//        System.out.println(Arrays.toString(db2.submitRequest("to be", "ali")));
+        System.out.println(Arrays.deepToString(db2.viewMyRequests("ahmedd")));
     }
 }
