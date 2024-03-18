@@ -38,11 +38,11 @@ class Server {
         PrintWriter out = null;
         BufferedReader in = null;
         String userId;
-        mongoConnection db;
+        DbMethods db;
 
         public ClientHandler(Socket socket) {
             this.clientSocket = socket;
-            db = new mongoConnection();
+            db = new DbMethods();
         }
 
         public void run() {
@@ -53,6 +53,7 @@ class Server {
                 in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 String choice;
                 out.println("Welcome to the Library!");
+                label:
                 while (true) {
                     out.println("1) Log in");
                     out.println("2) Sign up");
@@ -60,15 +61,19 @@ class Server {
                     out.println("Enter Your Choice: ");
                     out.println("x");
                     choice = in.readLine();
-                    if (choice.equals("1")) {
-                        logIn();
-                    } else if (choice.equals("2")) {
-                        signUp();
-                    } else if (choice.equals("3")) {
-                        out.println("shutDown");
-                        break;
-                    } else {
-                        out.println("Wrong Input, Please Try Again");
+                    switch (choice) {
+                        case "1":
+                            logIn();
+                            break;
+                        case "2":
+                            signUp();
+                            break;
+                        case "3":
+                            out.println("shutDown");
+                            break label;
+                        default:
+                            out.println("Wrong Input, Please Try Again");
+                            break;
                     }
                 }
             } catch (IOException e) {
@@ -135,24 +140,35 @@ class Server {
 
         private void menu() throws IOException {
             String choice;
+            label:
             while (true) {
                 out.println("0) Log out");
                 out.println("1) Add a book");
                 out.println("2) Remove a book");
                 out.println("3) View Library");
+                out.println("4) Search for a book");
                 out.println("Enter Your Choice: ");
                 out.println("x");
                 choice = in.readLine();
-                if (choice.equals("1")) {
-                    addBook();
-                } else if (choice.equals("2")) {
-                    removeBook();
-                } else if (choice.equals("3")) {
-                    viewLibrary();
-                } else if (choice.equals("0")) {
-                    break;
-                } else {
-                    out.println("Wrong Input, Please Try Again");
+                switch (choice) {
+                    case "0":
+                        break label;
+                    case "1":
+                        addBook();
+                        break;
+                    case "2":
+                        removeBook();
+                        break;
+                    case "3":
+                        viewLibrary();
+                        break;
+                    case "4":
+                        searchBook();
+                        break;
+
+                    default:
+                        out.println("Wrong Input, Please Try Again");
+                        break;
                 }
             }
         }
@@ -186,7 +202,7 @@ class Server {
 
         private void removeBook() throws IOException {
             String[] books = db.viewMyBooks(userId);
-            int bookid;
+            int bookId;
             if (books.length == 0)
                 out.println("No books to view!");
             else {
@@ -195,9 +211,9 @@ class Server {
                 }
                 out.println("Choose a book to remove or 0 (Zero) to go back: ");
                 out.println("x");
-                bookid = Integer.parseInt(in.readLine());
-                if (bookid == 0) return;
-                String[] ans = db.removeBook(books[bookid - 1]);
+                bookId = Integer.parseInt(in.readLine());
+                if (bookId == 0) return;
+                String[] ans = db.removeBook(books[bookId - 1]);
                 if (ans[0].equals("true"))
                     out.println(ans[2]);
                 else
@@ -207,7 +223,7 @@ class Server {
 
         private void viewLibrary() throws IOException {
             String[] books = db.viewBooks();
-            int bookid;
+            int bookId;
             if (books.length == 0)
                 out.println("No books to view!");
             else {
@@ -216,9 +232,9 @@ class Server {
                 }
                 out.println("Choose a book to view or 0 (Zero) to go back:  ");
                 out.println("x");
-                bookid = Integer.parseInt(in.readLine());
-                if (bookid == 0) return;
-                viewBook(books[bookid - 1]);
+                bookId = Integer.parseInt(in.readLine());
+                if (bookId == 0) return;
+                viewBook(books[bookId - 1]);
             }
         }
 
@@ -238,6 +254,36 @@ class Server {
             if (choice.equals("yes")) {
                 //TODO: REQUEST TO BORROW BOOK HERE
                 out.println("Book requested!");
+            }
+        }
+
+        private void searchBook() throws IOException {
+            String choice;
+            out.println("Choose the search criteria");
+            out.println("1) Title ");
+            out.println("2) Author ");
+            out.println("3) Genra ");
+            out.println("x");
+            choice = in.readLine();
+            switch (choice) {
+                case "0":
+                    break;
+                case "1":
+                    addBook();
+                    break;
+                case "2":
+                    removeBook();
+                    break;
+                case "3":
+                    viewLibrary();
+                    break;
+                case "4":
+                    searchBook();
+                    break;
+
+                default:
+                    out.println("Wrong Input, Please Try Again");
+                    break;
             }
         }
     }
