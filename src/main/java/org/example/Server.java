@@ -375,13 +375,12 @@ class Server {
         }
 
         private void requestHistory() throws IOException {
-            //TODO: CHANGE FOR THE CORRECT METHOD FROM DB
-//            String[][] requests = db.requestHistory();
-//            for (String[] request : requests) {
-//                out.println(request[0] + 1 + ") " + request[1]);
-//                out.println("   Borrower: " + request[2]);
-//                out.println("   Status: " + request[3]);
-//            }
+            String[][] requests = db.viewMyRequestHistory(userName);
+            for (String[] request : requests) {
+                out.println(request[0] + 1 + ") " + request[1]);
+                out.println("   Borrower: " + request[2]);
+                out.println("   Status: " + request[3]);
+            }
 
         }
 
@@ -409,13 +408,12 @@ class Server {
         }
 
         private void libraryStats() throws IOException {
-            //TODO: CHANGE FOR THE CORRECT METHOD FROM DB
-//            String[] stats = db.getStats();
-//            for (int i = 0; i < stats.length; i++) {
-//                out.println("Current borrowed books: " + stats[0]);
-//                out.println("Available books: " + stats[1]);
-//                out.println("Requests: " + stats[2]);
-//            }
+            String[] stats = db.libraryStats();
+            for (int i = 0; i < stats.length; i++) {
+                out.println("Current borrowed books: " + stats[0]);
+                out.println("Available books: " + stats[1]);
+                out.println("Requests: " + stats[2]);
+            }
         }
     }
 }
