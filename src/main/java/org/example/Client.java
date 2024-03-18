@@ -17,11 +17,12 @@ class Client {
             String line = null;
             while (!"exit".equalsIgnoreCase(line)) {
                 //Gathering Server reply
-                String input, sent = "";
+                String input;
+                StringBuilder sent = new StringBuilder();
                 input = in.readLine();
                 if (input.equals("shutDown")) break;
                 while (!input.equals("x")) {
-                    sent += input + "\n";
+                    sent.append(input).append("\n");
                     input = in.readLine();
                 }
                 // displaying server reply
