@@ -2,39 +2,28 @@ package org.example;
 
 import static com.mongodb.client.model.Filters.eq;
 
-import java.net.UnknownHostException;
 import java.util.*;
-import java.util.regex.Pattern;
 
 import static com.mongodb.client.model.Filters.regex;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
-import com.mongodb.ConnectionString;
 import com.mongodb.DBObject;
 import com.mongodb.client.*;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.DeleteResult;
-import com.mongodb.client.result.UpdateResult;
-import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import com.mongodb.client.model.Projections;
-import com.mongodb.client.model.Sorts;
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DbMethods {
     MongoCollection<Document> colUsers;
     MongoCollection<Document> colBooks;
     MongoCollection<Document> colRequests;
-    mongoConnection db;
+    MongoConnection db;
 
     public DbMethods() {
-        db = new mongoConnection();
+        db = new MongoConnection();
         colUsers = db.getDb().getCollection("users");
         colBooks = db.getDb().getCollection("books");
         colRequests = db.getDb().getCollection("requests");
