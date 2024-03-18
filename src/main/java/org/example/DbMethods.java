@@ -302,12 +302,15 @@ public class DbMethods {
         String s4 = s3.split("\",")[0];
         //borrower
         String s5 = doc.toJson().split(": \"")[3];
-        String s6 = s5.split("\"}")[0];
-        return new String[]{s2, s4, s6};
+        String s6 = s5.split("\",")[0];
+        //status
+        String s7 = doc.toJson().split(": \"")[4];
+        String s8 = s7.split("\"}")[0];
+        return new String[]{s2, s4, s6, s8};
     }
 
     public String[][] viewMyRequests(String lender) {
-        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "borrower"));
+        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
         MongoCursor<Document> cursor = colRequests.find(eq("lender", lender)).projection(projectionFields).iterator();
         long matchedCount = colRequests.countDocuments();
         String[][] res = new String[(int) matchedCount][3];
@@ -323,32 +326,52 @@ public class DbMethods {
     }
 
     public String[] modifyRequest(String option, String id) {
-        Document doc = colRequests.find(eq("_id", id)).first();
+        Bson projectionFields2 = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
+        Document doc = colRequests.find(eq("_id", id)).projection(projectionFields2).first();
         if (doc == null) {
-            return msg("false","404","request couldn't be found");
+            return msg("false", "404", "request couldn't be found");
         }
         String[] temp = myRequestDetails(doc);
-
+        String title = temp[1];
+        String status = temp[3];
+        if(!Objects.equals(status, "pending")){
+            return msg("false","500","this request has already been managed");
+        }
         if (Objects.equals(option, "accept")) {
             Bson projectionFields = Projections.fields(Projections.excludeId());
-            Document checkQuantity = colBooks.find(eq("title", temp[1])).projection(projectionFields).first();
+            Document checkQuantity = colBooks.find(eq("title", title)).projection(projectionFields).first();
             assert checkQuantity != null;
             //quantity
             String s2 = checkQuantity.toJson().split(": ")[5];
             String quantity = s2.split(",")[0];
 
             if (Objects.equals(quantity, "0")) {
-                Document query = new Document().append("_id",id);
-                Bson updates = Updates.combine(Updates.set("status", "deny"));
-                colRequests.updateOne(query,updates);
+                Document query = new Document().append("_id", id);
+                Bson updates = Updates.combine(Updates.set("status", "denied"));
+                colRequests.updateOne(query, updates);
                 return msg("false", "404", "not enough books available request has been automatically denied");
-            }else{
-                return msg("false", "404", "not enough books available request has been automatically denied");
+            } else {
+                //changing request from pending to accept
+                Document query = new Document().append("_id", id);
+                Bson updates = Updates.combine(Updates.set("status", "accepted"));
+                colRequests.updateOne(query, updates);
+
+                //subtracting quantity by 1 from the book
+                Document queryBook = new Document().append("title", title);
+                Bson updatesBook = Updates.combine(Updates.set("quantity", Integer.parseInt(quantity) - 1));
+                colBooks.updateOne(queryBook, updatesBook);
+
+                return msg("true", "200", "request has been accepted successfully");
             }
-        }else{
-            return msg("false", "404", "not enough books available request has been automatically denied");
+        } else {
+            Document query = new Document().append("_id", id);
+            Bson updates = Updates.combine(Updates.set("status", "denied"));
+            colRequests.updateOne(query, updates);
+            return msg("true", "200", "request has been denied successfully");
         }
     }
+
+
 
 //        Document sampleDoc = new Document("_id","4").append("name","john smith").append("books", Arrays.asList("book1","book2"));
 //        Document[] docs = col.find();

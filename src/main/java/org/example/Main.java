@@ -16,6 +16,7 @@ public class Main {
         String [] userList = {"ali","hassan"};
 //        System.out.println(db2.insertTest("to be 4", "ali","horror",123,12,"ahmedd",userList));
 //        System.out.println(Arrays.toString(db2.submitRequest("to be", "ali")));
-        System.out.println(Arrays.deepToString(db2.viewMyRequests("ahmedd")));
+//        System.out.println(Arrays.deepToString(db2.viewMyRequests("ahmedd")));
+        System.out.println(Arrays.toString(db2.modifyRequest("accept", "0")));
     }
 }
