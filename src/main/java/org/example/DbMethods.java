@@ -1,10 +1,6 @@
 package org.example;
 
-import static com.mongodb.client.model.Filters.eq;
-
 import java.util.*;
-
-import static com.mongodb.client.model.Filters.regex;
 
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
@@ -12,9 +8,12 @@ import com.mongodb.DBObject;
 import com.mongodb.client.*;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.DeleteResult;
+import com.mongodb.lang.NonNull;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import com.mongodb.client.model.Projections;
+
+import static com.mongodb.client.model.Filters.*;
 
 public class DbMethods {
     MongoCollection<Document> colUsers;
@@ -28,8 +27,6 @@ public class DbMethods {
         colBooks = db.getDb().getCollection("books");
         colRequests = db.getDb().getCollection("requests");
     }
-
-
 
 
     public String[] msg(String flag, String code, String msg) {
@@ -99,8 +96,7 @@ public class DbMethods {
         if (doc != null) {
             return msg("false", "409", "duplicate book title");
         }
-        Document sampleDoc = new Document().append("title", title).append("author", author).append("genre", genre)
-                .append("price", price).append("quantity", quantity).append("owner", owner).append("userList", Collections.emptyList());
+        Document sampleDoc = new Document().append("title", title).append("author", author).append("genre", genre).append("price", price).append("quantity", quantity).append("owner", owner).append("userList", Collections.emptyList());
         colBooks.insertOne(sampleDoc);
 
         return msg("true", "200", "book added successfully!");
@@ -248,8 +244,7 @@ public class DbMethods {
 
         long matchedCount = colRequests.countDocuments();
 
-        Document sampleDoc = new Document("_id", Long.toString(matchedCount)).append("bookTitle", title).append("lender", lender).append("borrower", borrower).
-                append("status", "pending");
+        Document sampleDoc = new Document("_id", Long.toString(matchedCount)).append("bookTitle", title).append("lender", lender).append("borrower", borrower).append("status", "pending");
         colRequests.insertOne(sampleDoc);
 
         return msg("true", "200", "book requested successfully");
@@ -277,7 +272,7 @@ public class DbMethods {
         while (cursor.hasNext()) {
             String[] temp = myRequestDetails(cursor.next());
             for (int i = 0; i <= 2; i++) {
-                if(Objects.equals(temp[3], "pending")){
+                if (Objects.equals(temp[3], "pending")) {
                     res[count][i] = temp[i];
                 }
             }
@@ -292,21 +287,21 @@ public class DbMethods {
         search.add(condition1);
         DBObject query = new BasicDBObject("$and", search);
 
-        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
+        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "lender", "borrower", "status"));
         MongoCursor<Document> cursor = colRequests.find((Bson) query).projection(projectionFields).iterator();
         long matchedCount = colRequests.countDocuments((Bson) query);
         return getRequests(cursor, (int) matchedCount);
     }
 
     public String[][] viewMyRequestHistory(String lender) {
-        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
-        MongoCursor<Document> cursor = colRequests.find(eq("lender",lender)).projection(projectionFields).iterator();
-        long matchedCount = colRequests.countDocuments(eq("lender",lender));
+        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "lender", "borrower", "status"));
+        MongoCursor<Document> cursor = colRequests.find(eq("lender", lender)).projection(projectionFields).iterator();
+        long matchedCount = colRequests.countDocuments(eq("lender", lender));
         return getRequests(cursor, (int) matchedCount);
     }
 
     public String[] modifyRequest(String option, String id) {
-        Bson projectionFields2 = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
+        Bson projectionFields2 = Projections.fields(Projections.include("bookTitle", "lender", "borrower", "status"));
         Document doc = colRequests.find(eq("_id", id)).projection(projectionFields2).first();
         if (doc == null) {
             return msg("false", "404", "request couldn't be found");
@@ -314,8 +309,8 @@ public class DbMethods {
         String[] temp = myRequestDetails(doc);
         String title = temp[1];
         String status = temp[3];
-        if(!Objects.equals(status, "pending")){
-            return msg("false","500","this request has already been managed");
+        if (!Objects.equals(status, "pending")) {
+            return msg("false", "500", "this request has already been managed");
         }
         if (Objects.equals(option, "accept")) {
             Bson projectionFields = Projections.fields(Projections.excludeId());
@@ -351,8 +346,8 @@ public class DbMethods {
         }
     }
 
-    public String[] libraryStats(){
-        long borrowedBooks = colRequests.countDocuments(eq("status","accepted"));
+    public String[] libraryStats() {
+        long borrowedBooks = colRequests.countDocuments(eq("status", "accepted"));
         long requestsNumber = colRequests.countDocuments();
         long availableBooks = 0;
         Bson projectionFields = Projections.fields(Projections.excludeId());
@@ -363,5 +358,107 @@ public class DbMethods {
             availableBooks += Long.parseLong(quantity);
         }
         return new String[]{String.valueOf(borrowedBooks), String.valueOf(availableBooks), String.valueOf(requestsNumber)};
+    }
+
+    public String[] requestSpecificDetails(Document doc) {
+        //id
+        String s = doc.toJson().split(": \"")[1];
+        String s2 = s.split("\",")[0];
+        //bookTitle
+        String s3 = doc.toJson().split(": \"")[2];
+        String s4 = s3.split("\",")[0];
+        //lender
+        String s5 = doc.toJson().split(": \"")[3];
+        String s6 = s5.split("\",")[0];
+        //borrower
+        String s7 = doc.toJson().split(": \"")[4];
+        String s8 = s7.split("\",")[0];
+        //status
+        String s9 = doc.toJson().split(": \"")[5];
+        String s10 = s9.split("\"}")[0];
+
+        return new String[]{s2, s4, s6, s8, s10};
+    }
+
+    public String[][] requestSpecificDetailsLoop(MongoCursor<Document> cursor, int matchedCount) {
+        String[][] res = new String[matchedCount][5];
+        int count = 0;
+        while (cursor.hasNext()) {
+            String[] temp;
+            temp = requestSpecificDetails(cursor.next());
+            for (int i = 0; i <= 4; i++) {
+                if (Objects.equals(temp[4], "accepted")) {
+                    res[count][i] = temp[i];
+                }
+            }
+            count++;
+        }
+        return res;
+    }
+
+    public String[][] checkAcceptedRequests(String username) {
+        DBObject lenderCondition = new BasicDBObject("lender", username).append("status", "accepted");
+        BasicDBList lenderSearch = new BasicDBList();
+        lenderSearch.add(lenderCondition);
+        DBObject lenderQuery = new BasicDBObject("$and", lenderSearch);
+
+        DBObject borrowerCondition = new BasicDBObject("borrower", username).append("status", "accepted");
+        BasicDBList borrowerSearch = new BasicDBList();
+        borrowerSearch.add(borrowerCondition);
+        DBObject borrowerQuery = new BasicDBObject("$and", borrowerSearch);
+
+        Bson projectionFields2 = Projections.fields(Projections.include("bookTitle", "lender", "borrower", "status"));
+        MongoCursor<Document> isLender = colRequests.find((Bson) lenderQuery).projection(projectionFields2).iterator();
+        MongoCursor<Document> isBorrower = colRequests.find((Bson) borrowerQuery).projection(projectionFields2).iterator();
+        int allDocuments = 0;
+        int lenderCount = 0;
+        int borrowerCount = 0;
+        //username, hisType, bookTitle
+        String[][] lenderRes = new String[][]{};
+        String[][] borrowerRes = new String[][]{};
+
+        if (isLender.hasNext()) {
+            long lenderCountLong = colRequests.countDocuments((Bson) lenderQuery);
+            lenderCount = (int) lenderCountLong;
+            allDocuments += lenderCount;
+            System.out.println(lenderCount);
+            lenderRes = new String[lenderCount][3];
+            String[][] temp = requestSpecificDetailsLoop(isLender, lenderCount);
+            for (int i = 0; i < lenderCount; i++) {
+                lenderRes[i][0] = temp[i][3];
+                lenderRes[i][1] = "borrower";
+                lenderRes[i][2] = temp[i][1];
+            }
+        }
+        if (isBorrower.hasNext()) {
+            long borrowerCountLong = colRequests.countDocuments((Bson) borrowerQuery);
+            borrowerCount = (int) borrowerCountLong;
+            allDocuments += borrowerCount;
+            borrowerRes = new String[borrowerCount][3];
+            String[][] temp = requestSpecificDetailsLoop(isBorrower, lenderCount);
+            for (int i = 0; i < borrowerCount; i++) {
+                borrowerRes[i][0] = temp[i][2];
+                borrowerRes[i][1] = "lender";
+                borrowerRes[i][2] = temp[i][1];
+            }
+        }
+        String[][] res = new String[allDocuments][3];
+        System.out.println(borrowerCount);
+        System.out.println(lenderCount);
+        int count = 0;
+        int borrowerCountLoop =0;
+        for (int i = 0; i < lenderCount; i++) {
+            System.arraycopy(lenderRes[i], 0, res[i], 0, lenderRes[0].length);
+            count++;
+        }
+        for (int i = count; i < allDocuments; i++) {
+                System.arraycopy(borrowerRes[borrowerCountLoop], 0, res[i], 0, borrowerRes[0].length);
+                borrowerCountLoop++;
+        }
+        //sample output [name of guy, his type to me, the book name][ali, lender, The Abyss]
+        if (res.length == 0) {
+            return new String[0][];
+        }
+        return res;
     }
 }
