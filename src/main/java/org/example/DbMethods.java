@@ -280,25 +280,13 @@ public class DbMethods {
         return res;
     }
 
-    public String[][] viewMyLenderRequests(String lender) {
+    public String[][] viewMyRequests(String lender) {
         DBObject condition1 = new BasicDBObject("lender", lender).append("status", "pending");
         BasicDBList search = new BasicDBList();
         search.add(condition1);
         DBObject query = new BasicDBObject("$and", search);
 
         Bson projectionFields = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
-        MongoCursor<Document> cursor = colRequests.find((Bson) query).projection(projectionFields).iterator();
-        long matchedCount = colRequests.countDocuments((Bson) query);
-        return getRequests(cursor, (int) matchedCount);
-    }
-
-    public String[][] viewMyBorrowerRequests(String borrower) {
-        DBObject condition1 = new BasicDBObject("borrower", borrower).append("status", "pending");
-        BasicDBList search = new BasicDBList();
-        search.add(condition1);
-        DBObject query = new BasicDBObject("$and", search);
-
-        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "lender", "status"));
         MongoCursor<Document> cursor = colRequests.find((Bson) query).projection(projectionFields).iterator();
         long matchedCount = colRequests.countDocuments((Bson) query);
         return getRequests(cursor, (int) matchedCount);
