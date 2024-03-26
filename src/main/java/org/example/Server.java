@@ -80,6 +80,7 @@ class Server {
                     choice = reader.readLine();
                     switch (choice) {
                         case "1":
+//                            throw new Exception("Exception message");
                             logIn();
                             break;
                         case "2":
@@ -94,15 +95,24 @@ class Server {
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
                 closeEverything();
+                e.printStackTrace();
+
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
 
         }
+
         public void closeEverything() {
             try {
-                //TODO: CHECK THIS
-                //removeClientHandler();
+                writer.println("an error in the server occurred, please try again later!");
+                writer.println("shutDown");
+//                System.out.println(12312323);
+                if (userName != null) {
+
+                    activeUsers.remove(userName);
+                }
                 if (writer != null) {
                     writer.close();
                 }
@@ -111,9 +121,6 @@ class Server {
                 }
                 if (socket != null) {
                     socket.close();
-                }
-                if (userName != null){
-                    activeUsers.remove(userName);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -178,7 +185,7 @@ class Server {
                 writer.println("0) Log out");
                 writer.println("1) Add a book");
                 writer.println("2) Remove a book");
-                writer.println("3) Check Requests");
+                writer.println("3) Check pending requests");
                 writer.println("4) Request history");
                 writer.println("5) Chat With other clients");
                 writer.println("");
@@ -386,8 +393,13 @@ class Server {
             int requestId, choice;
             String[] ans;
             String[][] requests = db.viewMyRequests(userName);
+            if (requests.length == 0) {
+                writer.println("You have pending no requests!");
+                return;
+            }
             for (int i = 0; i < requests.length; i++) {
                 writer.println(i + 1 + ") " + requests[i][1]);
+//                writer.println(requests[i][0] + ") " + requests[i][1]);
                 writer.println("   Borrower: " + requests[i][2]);
             }
             writer.println("Choose the request you want to handle or 0 (Zero) to go back:  ");
@@ -397,7 +409,6 @@ class Server {
             writer.println("1) Approve request");
             writer.println("2) Deny request");
             choice = Integer.parseInt(reader.readLine());
-
             if (choice == 1) ans = db.modifyRequest("accept", requests[requestId - 1][0]);
             else ans = db.modifyRequest("deny", requests[requestId - 1][0]);
             if (ans[0].equals("true")) writer.println(ans[2]);
@@ -405,11 +416,26 @@ class Server {
         }
 
         private void requestHistory() throws IOException {
-            String[][] requests = db.viewMyRequestHistory(userName);
-            for (String[] request : requests) {
-                writer.println(request[0] + 1 + ") " + request[1]);
+            String[][] lenderRequests = db.viewMyLenderRequestHistory(userName);
+            String[][] borrowerRequests = db.viewMyBorrowerRequestHistory(userName);
+            if (borrowerRequests.length == 0 && lenderRequests.length == 0) {
+                writer.println("No request History!");
+                return;
+            }
+            int counter = 1;
+            for (int i = 0; i < borrowerRequests.length; i++) {
+                String[] request = borrowerRequests[i];
+                writer.println(counter + ") " + request[1]);
+                writer.println("   Borrower: " + request[2] + " (Me)");
+                writer.println("   Status: " + request[3]);
+                counter++;
+            }
+            for (int i = 0; i < lenderRequests.length; i++) {
+                String[] request = lenderRequests[i];
+                writer.println(counter + ") " + request[1]);
                 writer.println("   Borrower: " + request[2]);
                 writer.println("   Status: " + request[3]);
+                counter++;
             }
         }
 
@@ -445,50 +471,52 @@ class Server {
             }
         }
 
-        //      private void chatList() throws IOException {
-//            int userId;
-//            String[][] acceptedUsers = db.getAcceptedUsers(userName);
-//            if (acceptedUsers.length == 0) {
-//                out.println("No books to view!");
-//                return;
-//            }
-//            out.println("Active Users: ");
-//            for (int i = 0; i < acceptedUsers.length; i++) {
-//                out.println(i + 1 + ") " + acceptedUsers[i][0]);
-//                out.println("   Type: " + acceptedUsers[i][0]);
-//                out.println("   Book Name: " + acceptedUsers[i][0]);
-//            }
-//            out.println("Choose User to chat with: ");
-//            out.println("x");
-//            userId = Integer.parseInt(in.readLine());
-//            Socket receiver = activeUsers.get(acceptedUsers[0][userId - 1]);
-//            Socket sender = activeUsers.get(userName);
-//            if (receiver != null || sender != null) {
-//                startChat(receiver, sender);
-//            } else {
-//                out.println("This user is no longer active!");
-//            }
-//        }
         private void chatList() throws IOException {
-            int counter = 0;
-            String userId;
-            writer.println("Active Users: ");
-            for (String activeU : activeUsers.keySet()) {
-                writer.println(counter + 1 + ") " + activeU);
-                counter++;
+            int userId;
+            String[][] acceptedUsers = db.checkAcceptedRequests(userName);
+            if (acceptedUsers.length == 0) {
+                writer.println("No books to view!");
+                return;
             }
-            writer.println("Choose User to chat with: ");
+            writer.println("Active Users: ");
+            for (int i = 0; i < acceptedUsers.length; i++) {
+                writer.println(i + 1 + ") " + acceptedUsers[i][0]);
+                writer.println("   Type: " + acceptedUsers[i][1]);
+                writer.println("   Book Name: " + acceptedUsers[i][2]);
+            }
+            writer.println("Choose User to chat with or 0 (Zero) to go back: ");
+            userId = Integer.parseInt(reader.readLine());
 
-            userId = reader.readLine();
-            if (userId.equals("x")) return;
+            if (userId == 0) return;
             ClientHandler receiver = activeUsers.get(userId);
+
             if (receiver != null) {
-                connectedUsers.put(userName, userId);
-                startChat(receiver, userId);
+                connectedUsers.put(userName, acceptedUsers[userId-1][0]);
+                startChat(receiver, acceptedUsers[userId-1][0]);
             } else {
                 writer.println("This user is no longer active!");
             }
         }
+//        private void chatList() throws IOException {
+//            int counter = 0;
+//            String userId;
+//            writer.println("Active Users: ");
+//            for (String activeU : activeUsers.keySet()) {
+//                writer.println(counter + 1 + ") " + activeU);
+//                counter++;
+//            }
+//            writer.println("Choose User to chat with: ");
+//            userId = reader.readLine();
+//
+//            if (userId.equals("x")) return;
+//            ClientHandler receiver = activeUsers.get(userId);
+//            if (receiver != null) {
+//                connectedUsers.put(userName, userId);
+//                startChat(receiver, userId);
+//            } else {
+//                writer.println("This user is no longer active!");
+//            }
+//        }
 
         private void startChat(ClientHandler receiver, String userId) throws IOException {
             writer.println("Enter 'x' to Leave the chat");
