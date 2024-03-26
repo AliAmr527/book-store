@@ -36,19 +36,9 @@ class Server {
         }
     }
 
-    public void closeServerSocket() {
-        try {
-            if (serverSocket != null) {
-                serverSocket.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     private static class ClientHandler implements Runnable {
-        static Map<String, ClientHandler> activeUsers = new HashMap<String, ClientHandler>();
-        static Map<String, String> connectedUsers = new HashMap<String, String>();
+        static Map<String, ClientHandler> activeUsers = new HashMap<>();
+        static Map<String, String> connectedUsers = new HashMap<>();
         Socket socket;
         PrintWriter writer;
         BufferedReader reader;
@@ -80,7 +70,6 @@ class Server {
                     choice = reader.readLine();
                     switch (choice) {
                         case "1":
-//                            throw new Exception("Exception message");
                             logIn();
                             break;
                         case "2":
@@ -94,12 +83,10 @@ class Server {
                             break;
                     }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 closeEverything();
                 e.printStackTrace();
 
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
 
         }
@@ -108,9 +95,7 @@ class Server {
             try {
                 writer.println("an error in the server occurred, please try again later!");
                 writer.println("shutDown");
-//                System.out.println(12312323);
                 if (userName != null) {
-
                     activeUsers.remove(userName);
                 }
                 if (writer != null) {
@@ -399,7 +384,6 @@ class Server {
             }
             for (int i = 0; i < requests.length; i++) {
                 writer.println(i + 1 + ") " + requests[i][1]);
-//                writer.println(requests[i][0] + ") " + requests[i][1]);
                 writer.println("   Borrower: " + requests[i][2]);
             }
             writer.println("Choose the request you want to handle or 0 (Zero) to go back:  ");
@@ -415,7 +399,7 @@ class Server {
             else writer.println("Error: " + ans[1] + " " + ans[2]);
         }
 
-        private void requestHistory() throws IOException {
+        private void requestHistory() {
             String[][] lenderRequests = db.viewMyLenderRequestHistory(userName);
             String[][] borrowerRequests = db.viewMyBorrowerRequestHistory(userName);
             if (borrowerRequests.length == 0 && lenderRequests.length == 0) {
@@ -423,15 +407,13 @@ class Server {
                 return;
             }
             int counter = 1;
-            for (int i = 0; i < borrowerRequests.length; i++) {
-                String[] request = borrowerRequests[i];
+            for (String[] request : borrowerRequests) {
                 writer.println(counter + ") " + request[1]);
                 writer.println("   Borrower: " + request[2] + " (Me)");
                 writer.println("   Status: " + request[3]);
                 counter++;
             }
-            for (int i = 0; i < lenderRequests.length; i++) {
-                String[] request = lenderRequests[i];
+            for (String[] request : lenderRequests) {
                 writer.println(counter + ") " + request[1]);
                 writer.println("   Borrower: " + request[2]);
                 writer.println("   Status: " + request[3]);
@@ -462,7 +444,7 @@ class Server {
             }
         }
 
-        private void libraryStats() throws IOException {
+        private void libraryStats()  {
             String[] stats = db.libraryStats();
             for (int i = 0; i < stats.length; i++) {
                 writer.println("Current borrowed books: " + stats[0]);
@@ -475,7 +457,7 @@ class Server {
             int userId;
             String[][] acceptedUsers = db.checkAcceptedRequests(userName);
             if (acceptedUsers.length == 0) {
-                writer.println("No books to view!");
+                writer.println("No accepted requests!");
                 return;
             }
             writer.println("Active Users: ");
@@ -488,37 +470,17 @@ class Server {
             userId = Integer.parseInt(reader.readLine());
 
             if (userId == 0) return;
-            ClientHandler receiver = activeUsers.get(userId);
+            ClientHandler receiver = activeUsers.get(acceptedUsers[userId - 1][0]);
 
             if (receiver != null) {
-                connectedUsers.put(userName, acceptedUsers[userId-1][0]);
-                startChat(receiver, acceptedUsers[userId-1][0]);
+                connectedUsers.put(userName, acceptedUsers[userId - 1][0]);
+                startChat(receiver, acceptedUsers[userId - 1][0]);
             } else {
                 writer.println("This user is no longer active!");
             }
         }
-//        private void chatList() throws IOException {
-//            int counter = 0;
-//            String userId;
-//            writer.println("Active Users: ");
-//            for (String activeU : activeUsers.keySet()) {
-//                writer.println(counter + 1 + ") " + activeU);
-//                counter++;
-//            }
-//            writer.println("Choose User to chat with: ");
-//            userId = reader.readLine();
-//
-//            if (userId.equals("x")) return;
-//            ClientHandler receiver = activeUsers.get(userId);
-//            if (receiver != null) {
-//                connectedUsers.put(userName, userId);
-//                startChat(receiver, userId);
-//            } else {
-//                writer.println("This user is no longer active!");
-//            }
-//        }
 
-        private void startChat(ClientHandler receiver, String userId) throws IOException {
+        private void startChat(ClientHandler receiver, String userId)  {
             writer.println("Enter 'x' to Leave the chat");
             String user1 = connectedUsers.get(userName);
             String user2 = connectedUsers.get(userId);
