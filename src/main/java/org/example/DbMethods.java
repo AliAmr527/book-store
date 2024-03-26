@@ -266,36 +266,55 @@ public class DbMethods {
     }
 
     private String[][] getRequests(MongoCursor<Document> cursor, int matchedCount) {
-        String[][] res = new String[matchedCount][3];
+        String[][] res = new String[matchedCount][4];
         int count = 0;
         while (cursor.hasNext()) {
             String[] temp = myRequestDetails(cursor.next());
-            for (int i = 0; i <= 2; i++) {
-                if (Objects.equals(temp[3], "pending")) {
+            for (int i = 0; i <= 3; i++) {
+
                     res[count][i] = temp[i];
-                }
+
             }
             count++;
         }
         return res;
     }
 
-    public String[][] viewMyRequests(String lender) {
+    public String[][] viewMyLenderRequests(String lender) {
         DBObject condition1 = new BasicDBObject("lender", lender).append("status", "pending");
         BasicDBList search = new BasicDBList();
         search.add(condition1);
         DBObject query = new BasicDBObject("$and", search);
 
-        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "lender", "borrower", "status"));
+        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
         MongoCursor<Document> cursor = colRequests.find((Bson) query).projection(projectionFields).iterator();
         long matchedCount = colRequests.countDocuments((Bson) query);
         return getRequests(cursor, (int) matchedCount);
     }
 
-    public String[][] viewMyRequestHistory(String lender) {
-        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "lender", "borrower", "status"));
+    public String[][] viewMyBorrowerRequests(String borrower) {
+        DBObject condition1 = new BasicDBObject("borrower", borrower).append("status", "pending");
+        BasicDBList search = new BasicDBList();
+        search.add(condition1);
+        DBObject query = new BasicDBObject("$and", search);
+
+        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "lender", "status"));
+        MongoCursor<Document> cursor = colRequests.find((Bson) query).projection(projectionFields).iterator();
+        long matchedCount = colRequests.countDocuments((Bson) query);
+        return getRequests(cursor, (int) matchedCount);
+    }
+
+    public String[][] viewMyLenderRequestHistory(String lender) {
+        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
         MongoCursor<Document> cursor = colRequests.find(eq("lender", lender)).projection(projectionFields).iterator();
         long matchedCount = colRequests.countDocuments(eq("lender", lender));
+        return getRequests(cursor, (int) matchedCount);
+    }
+
+    public String[][] viewMyBorrowerRequestHistory(String borrower) {
+        Bson projectionFields = Projections.fields(Projections.include("bookTitle", "borrower", "status"));
+        MongoCursor<Document> cursor = colRequests.find(eq("borrower", borrower)).projection(projectionFields).iterator();
+        long matchedCount = colRequests.countDocuments(eq("borrower", borrower));
         return getRequests(cursor, (int) matchedCount);
     }
 
