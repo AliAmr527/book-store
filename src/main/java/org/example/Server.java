@@ -6,65 +6,77 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
 
 class Server {
-    public static void main(String[] args) {
-        ServerSocket server = null;
+    ServerSocket serverSocket;
+
+    public Server(ServerSocket serverSocket) {
+        this.serverSocket = serverSocket;
+    }
+
+    public static void main(String[] args) throws IOException {
+        ServerSocket serverSocket = new ServerSocket(1234);
+        Server server = new Server(serverSocket);
+        server.startServer();
+    }
+
+    public void startServer() {
         try {
-            server = new ServerSocket(1234);
-            server.setReuseAddress(true);
-            // running infinite loop for getting client requests
-            while (true) {
-                // socket object to receive incoming client requests
-                Socket client = server.accept();
-                // Displaying that new client is connected to server
-                System.out.println("New client connected" + client.getInetAddress().getHostAddress());
-                // create a new thread object
-                ClientHandler clientSock = new ClientHandler(client);
-                // This thread will handle the client separately
-                new Thread(clientSock).start();
+            while (!serverSocket.isClosed()) {
+                Socket socket = serverSocket.accept();
+                System.out.println("New client connected Has connected");
+                ClientHandler clientHandler = new ClientHandler(socket);
+                Thread thread = new Thread(clientHandler);
+                thread.start();
             }
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (server != null) {
-                try {
-                    server.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+        }
+    }
+
+    public void closeServerSocket() {
+        try {
+            if (serverSocket != null) {
+                serverSocket.close();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     private static class ClientHandler implements Runnable {
-        private final Socket clientSocket;
-        PrintWriter out = null;
-        BufferedReader in = null;
+        static Map<String, ClientHandler> activeUsers = new HashMap<String, ClientHandler>();
+        Socket socket;
+        PrintWriter writer;
+        BufferedReader reader;
         String userName;
         DbMethods db;
 
         public ClientHandler(Socket socket) {
-            this.clientSocket = socket;
-            db = new DbMethods();
+            try {
+                this.socket = socket;
+                writer = new PrintWriter(socket.getOutputStream(), true);
+                reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                db = new DbMethods();
+            } catch (IOException e) {
+                closeEverything();
+            }
         }
 
         public void run() {
             try {
-                // get the output stream of client
-                out = new PrintWriter(clientSocket.getOutputStream(), true);
-                // get the input stream of client
-                in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 String choice;
-                out.println("Welcome to the Library!");
+                writer.println("Welcome to the Library!");
                 label:
                 while (true) {
-                    out.println("1) Log in");
-                    out.println("2) Sign up");
-                    out.println("3) Exit");
-                    out.println("Enter Your Choice: ");
-                    out.println("x");
-                    choice = in.readLine();
+                    writer.println("1) Log in");
+                    writer.println("2) Sign up");
+                    writer.println("3) Exit");
+                    writer.println("Enter Your Choice: ");
+                    writer.println("x");
+                    choice = reader.readLine();
                     switch (choice) {
                         case "1":
                             logIn();
@@ -73,50 +85,64 @@ class Server {
                             signUp();
                             break;
                         case "3":
-                            out.println("shutDown");
+                            writer.println("shutDown");
                             break label;
                         default:
-                            out.println("Wrong Input, Please Try Again");
+                            writer.println("Wrong Input, Please Try Again");
                             break;
                     }
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-            } finally {
-                try {
-                    if (out != null) {
-                        out.close();
-                    }
-                    if (in != null) {
-                        in.close();
-                        clientSocket.close();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
+                closeEverything();
+            }
+
+        }
+        /*
+        public void removeClientHandler() {
+            clientHandlers.remove(this);
+            //TODO: send the receiver's name
+            broadcastMessage("user has left the chat");
+        }*/
+        public void closeEverything() {
+            try {
+                //TODO: CHECK THIS
+                //removeClientHandler();
+                if (writer != null) {
+                    writer.close();
                 }
+                if (reader != null) {
+                    reader.close();
+                }
+                if (socket != null) {
+                    socket.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
         private void signUp() throws IOException {
             String name, username, password;
-            out.println("Please enter your details to sign up");
-            out.println("Name:");
-            out.println("x");
-            name = in.readLine();
-            out.println("Username:");
-            out.println("x");
-            username = in.readLine();
-            out.println("Password:");
-            out.println("x");
-            password = in.readLine();
+            writer.println("Please enter your details to sign up");
+            writer.println("Name:");
+            writer.println("x");
+            name = reader.readLine();
+            writer.println("Username:");
+            writer.println("x");
+            username = reader.readLine();
+            writer.println("Password:");
+            writer.println("x");
+            password = reader.readLine();
             String[] ans = db.register(name, username, password);
             if (!ans[0].equals("false")) {
-                out.println("Signed up Successfully!!!");
-                out.println("Hello " + ans[1]);
+                writer.println("Signed up Successfully!!!");
+                writer.println("Hello " + ans[1]);
                 userName = ans[2];
+                activeUsers.put(userName, this);
                 menu();
             } else {
-                out.println("Error: " + ans[1] + " " + ans[2]);
+                writer.println("Error: " + ans[1] + " " + ans[2]);
             }
 
         }
@@ -124,22 +150,25 @@ class Server {
         private void logIn() throws IOException {
             String password;
             String username;
-            out.println("Please Enter Username and Password");
-            out.println("Username: ");
-            out.println("x");
-            username = in.readLine();
-            out.println("Password: ");
-            out.println("x");
-            password = in.readLine();
+            writer.println("Please Enter Username and Password");
+            writer.println("Username: ");
+            writer.println("x");
+            username = reader.readLine();
+            writer.println("Password: ");
+            writer.println("x");
+            password = reader.readLine();
             String[] ans = db.login(username, password);
             if (ans[0].equals("true")) {
-                out.println("Signed in successfully!");
-                out.println("Hello " + ans[1]);
+                writer.println("Signed in successfully!");
+                writer.println("Hello " + ans[1]);
                 userName = ans[2];
                 if (ans[0].equals("admin")) adminMenu();
-                else menu();
+                else {
+                    activeUsers.put(userName, this);
+                    menu();
+                }
             } else {
-                out.println("Error: " + ans[1] + " " + ans[2]);
+                writer.println("Error: " + ans[1] + " " + ans[2]);
             }
         }
 
@@ -147,21 +176,23 @@ class Server {
             String choice;
             label:
             while (true) {
-                out.println("--- P E R S O N A L ---");
-                out.println("0) Log out");
-                out.println("1) Add a book");
-                out.println("2) Remove a book");
-                out.println("3) Check Requests");
-                out.println("4) Request history");
-                out.println("");
-                out.println("--- L I B R A R Y ---");
-                out.println("5) View Library");
-                out.println("6) Search for a book");
-                out.println("Enter Your Choice: ");
-                out.println("x");
-                choice = in.readLine();
+                writer.println("--- P E R S O N A L ---");
+                writer.println("0) Log out");
+                writer.println("1) Add a book");
+                writer.println("2) Remove a book");
+                writer.println("3) Check Requests");
+                writer.println("4) Request history");
+                writer.println("5) Chat With other clients");
+                writer.println("");
+                writer.println("--- L I B R A R Y ---");
+                writer.println("6) View Library");
+                writer.println("7) Search for a book");
+                writer.println("Enter Your Choice: ");
+                writer.println("x");
+                choice = reader.readLine();
                 switch (choice) {
                     case "0":
+                        activeUsers.remove(userName);
                         break label;
                     case "1":
                         addBook();
@@ -176,72 +207,76 @@ class Server {
                         requestHistory();
                         break;
                     case "5":
-                        viewLibrary();
+                        chatList();
                         break;
                     case "6":
+                        viewLibrary();
+                        break;
+                    case "7":
                         searchBook();
                         break;
 
                     default:
-                        out.println("Wrong Input, Please Try Again");
+                        writer.println("Wrong Input, Please Try Again");
                         break;
                 }
             }
         }
 
+
         private void addBook() throws IOException {
             String title, author, genre;
             int price, quantity;
-            out.println("Please enter book details");
-            out.println("Book title: ");
-            out.println("x");
-            title = in.readLine();
-            out.println("Book author: ");
-            out.println("x");
-            author = in.readLine();
-            out.println("Book genre: ");
-            out.println("x");
-            genre = in.readLine();
-            out.println("Book price: ");
-            out.println("x");
-            price = Integer.parseInt(in.readLine());
-            out.println("Book quantity: ");
-            out.println("x");
-            quantity = Integer.parseInt(in.readLine());
+            writer.println("Please enter book details");
+            writer.println("Book title: ");
+            writer.println("x");
+            title = reader.readLine();
+            writer.println("Book author: ");
+            writer.println("x");
+            author = reader.readLine();
+            writer.println("Book genre: ");
+            writer.println("x");
+            genre = reader.readLine();
+            writer.println("Book price: ");
+            writer.println("x");
+            price = Integer.parseInt(reader.readLine());
+            writer.println("Book quantity: ");
+            writer.println("x");
+            quantity = Integer.parseInt(reader.readLine());
             String[] ans = db.addBook(title, author, genre, price, quantity, userName);
-            if (ans[0].equals("true")) out.println(ans[2]);
-            else out.println("Error: " + ans[1] + " " + ans[2]);
+            if (ans[0].equals("true")) writer.println(ans[2]);
+            else writer.println("Error: " + ans[1] + " " + ans[2]);
         }
 
         private void removeBook() throws IOException {
             String[] books = db.viewMyBooks(userName);
             int bookId;
-            if (books.length == 0) out.println("No books to view!");
+            if (books.length == 0) writer.println("No books to view!");
             else {
                 for (int i = 0; i < books.length; i++) {
-                    out.println(i + 1 + ") " + books[i]);
+                    writer.println(i + 1 + ") " + books[i]);
                 }
-                out.println("Choose a book to remove or 0 (Zero) to go back: ");
-                out.println("x");
-                bookId = Integer.parseInt(in.readLine());
+                writer.println("Choose a book to remove or 0 (Zero) to go back: ");
+                writer.println("x");
+                bookId = Integer.parseInt(reader.readLine());
                 if (bookId == 0) return;
                 String[] ans = db.removeBook(books[bookId - 1]);
-                if (ans[0].equals("true")) out.println(ans[2]);
-                else out.println("Error: " + ans[1] + " " + ans[2]);
+                if (ans[0].equals("true")) writer.println(ans[2]);
+                else writer.println("Error: " + ans[1] + " " + ans[2]);
             }
         }
 
         private void viewLibrary() throws IOException {
             String[] books = db.viewBooks();
             int bookId;
-            if (books.length == 0) out.println("No books to view!");
+            if (books.length == 0) writer.println("No books to view!");
             else {
                 for (int i = 0; i < books.length; i++) {
-                    out.println(i + 1 + ") " + books[i]);
+                    writer.println(i + 1 + ") " + books[i]);
                 }
-                out.println("Choose a book to view or 0 (Zero) to go back:  ");
-                out.println("x");
-                bookId = Integer.parseInt(in.readLine());
+                writer.println("Choose a book to view or 0 (Zero) to go back:  ");
+                writer.println("x");
+                bookId = Integer.parseInt(reader.readLine());
                 if (bookId == 0) return;
                 viewBook(books[bookId - 1]);
             }
@@ -250,32 +285,32 @@ class Server {
         private void viewBook(String bookName) throws IOException {
             String[] bookDetail = db.viewBookDetails(bookName);
             String choice;
-            out.println("Title: " + bookDetail[0]);
-            out.println("Author: " + bookDetail[1]);
-            out.println("Genre: " + bookDetail[2]);
-            out.println("Price: " + bookDetail[3]);
-            out.println("Quantity: " + bookDetail[4]);
-            out.println("Book Owner: " + bookDetail[5]);
-            out.println("Do you want to Request " + bookDetail[0] + "? (enter 'yes' or 'no')");
-            out.println("Your Answer: ");
-            out.println("x");
-            choice = in.readLine();
+            writer.println("Title: " + bookDetail[0]);
+            writer.println("Author: " + bookDetail[1]);
+            writer.println("Genre: " + bookDetail[2]);
+            writer.println("Price: " + bookDetail[3]);
+            writer.println("Quantity: " + bookDetail[4]);
+            writer.println("Book Owner: " + bookDetail[5]);
+            writer.println("Do you want to Request " + bookDetail[0] + "? (enter 'yes' or 'no')");
+            writer.println("Your Answer: ");
+            writer.println("x");
+            choice = reader.readLine();
             if (choice.equals("yes")) {
                 String[] ans = db.submitRequest(bookDetail[0], userName);
-                if (ans[0].equals("true")) out.println(ans[2]);
-                else out.println("Error: " + ans[1] + " " + ans[2]);
+                if (ans[0].equals("true")) writer.println(ans[2]);
+                else writer.println("Error: " + ans[1] + " " + ans[2]);
             }
         }
 
         private void searchBook() throws IOException {
             String choice;
-            out.println("Choose the search criteria");
-            out.println("1) Title ");
-            out.println("2) Author ");
-            out.println("3) Genre ");
-            out.println("Choice: ");
-            out.println("x");
-            choice = in.readLine();
+            writer.println("Choose the search criteria");
+            writer.println("1) Title ");
+            writer.println("2) Author ");
+            writer.println("3) Genre ");
+            writer.println("Choice: ");
+            writer.println("x");
+            choice = reader.readLine();
             switch (choice) {
                 case "1":
                     searchByTitle();
@@ -287,19 +322,19 @@ class Server {
                     searchByGenre();
                     break;
                 default:
-                    out.println("Wrong Input!");
+                    writer.println("Wrong Input!");
                     break;
             }
         }
 
         private void searchByTitle() throws IOException {
             String choice;
-            out.println("Enter the title you want to search for");
-            out.println("Response: ");
-            out.println("x");
-            choice = in.readLine();
+            writer.println("Enter the title you want to search for");
+            writer.println("Response: ");
+            writer.println("x");
+            choice = reader.readLine();
             String[][] advBooks = db.bookByTitle(choice);
-            if (advBooks.length == 0) out.println("No books with that title!");
+            if (advBooks.length == 0) writer.println("No books with that title!");
             else {
                 viewBook2d(advBooks);
             }
@@ -307,12 +342,12 @@ class Server {
 
         private void searchByAuthor() throws IOException {
             String choice;
-            out.println("Enter the Author you want to search for");
-            out.println("Response: ");
-            out.println("x");
-            choice = in.readLine();
+            writer.println("Enter the Author you want to search for");
+            writer.println("Response: ");
+            writer.println("x");
+            choice = reader.readLine();
             String[][] advBooks = db.bookByAuthor(choice);
-            if (advBooks.length == 0) out.println("No books with that Author!");
+            if (advBooks.length == 0) writer.println("No books with that Author!");
             else {
                 viewBook2d(advBooks);
             }
@@ -321,12 +356,12 @@ class Server {
 
         private void searchByGenre() throws IOException {
             String choice;
-            out.println("Enter the Genre you want to search for");
-            out.println("Response: ");
-            out.println("x");
-            choice = in.readLine();
+            writer.println("Enter the Genre you want to search for");
+            writer.println("Response: ");
+            writer.println("x");
+            choice = reader.readLine();
             String[][] advBooks = db.bookByGenre(choice);
-            if (advBooks.length == 0) out.println("No books with that Genre!");
+            if (advBooks.length == 0) writer.println("No books with that Genre!");
             else {
                 viewBook2d(advBooks);
             }
@@ -336,20 +371,20 @@ class Server {
         private void viewBook2d(String[][] advBooks) throws IOException {
             int bookId;
             for (int i = 0; i < advBooks.length; i++) {
-                out.println(i + 1 + ") " + advBooks[i][0]);
-                out.println("   Author: " + advBooks[i][1]);
-                out.println("   Genre: " + advBooks[i][2]);
-                out.println("   Price: " + advBooks[i][3]);
-                out.println("   Quantity: " + advBooks[i][4]);
-                out.println("   Book Owner: " + advBooks[i][5]);
+                writer.println(i + 1 + ") " + advBooks[i][0]);
+                writer.println("   Author: " + advBooks[i][1]);
+                writer.println("   Genre: " + advBooks[i][2]);
+                writer.println("   Price: " + advBooks[i][3]);
+                writer.println("   Quantity: " + advBooks[i][4]);
+                writer.println("   Book Owner: " + advBooks[i][5]);
             }
-            out.println("Choose a book to request or 0 (Zero) to go back:  ");
-            out.println("x");
-            bookId = Integer.parseInt(in.readLine());
+            writer.println("Choose a book to request or 0 (Zero) to go back:  ");
+            writer.println("x");
+            bookId = Integer.parseInt(reader.readLine());
             if (bookId == 0) return;
             String[] ans = db.submitRequest(advBooks[bookId - 1][0], userName);
-            if (ans[0].equals("true")) out.println(ans[2]);
-            else out.println("Error: " + ans[1] + " " + ans[2]);
+            if (ans[0].equals("true")) writer.println(ans[2]);
+            else writer.println("Error: " + ans[1] + " " + ans[2]);
         }
 
         private void checkRequests() throws IOException {
@@ -357,29 +392,29 @@ class Server {
             String[] ans;
             String[][] requests = db.viewMyRequests(userName);
             for (int i = 0; i < requests.length; i++) {
-                out.println(i + 1 + ") " + requests[i][1]);
-                out.println("   Borrower: " + requests[i][2]);
+                writer.println(i + 1 + ") " + requests[i][1]);
+                writer.println("   Borrower: " + requests[i][2]);
             }
-            out.println("Choose the request you want to handle or 0 (Zero) to go back:  ");
-            out.println("x");
-            requestId = Integer.parseInt(in.readLine());
+            writer.println("Choose the request you want to handle or 0 (Zero) to go back:  ");
+            writer.println("x");
+            requestId = Integer.parseInt(reader.readLine());
             if (requestId == 0) return;
-            out.println("1) Approve request");
-            out.println("2) Deny request");
-            out.println("x");
-            choice = Integer.parseInt(in.readLine());
+            writer.println("1) Approve request");
+            writer.println("2) Deny request");
+            writer.println("x");
+            choice = Integer.parseInt(reader.readLine());
             if (choice == 1) ans = db.modifyRequest("accept", requests[requestId - 1][0]);
             else ans = db.modifyRequest("deny", requests[requestId - 1][0]);
-            if (ans[0].equals("true")) out.println(ans[2]);
-            else out.println("Error: " + ans[1] + " " + ans[2]);
+            if (ans[0].equals("true")) writer.println(ans[2]);
+            else writer.println("Error: " + ans[1] + " " + ans[2]);
         }
 
         private void requestHistory() throws IOException {
             String[][] requests = db.viewMyRequestHistory(userName);
             for (String[] request : requests) {
-                out.println(request[0] + 1 + ") " + request[1]);
-                out.println("   Borrower: " + request[2]);
-                out.println("   Status: " + request[3]);
+                writer.println(request[0] + 1 + ") " + request[1]);
+                writer.println("   Borrower: " + request[2]);
+                writer.println("   Status: " + request[3]);
             }
 
         }
@@ -388,12 +423,12 @@ class Server {
             String choice;
             label:
             while (true) {
-                out.println("--- A D M I N ---");
-                out.println("0) Log out");
-                out.println("1) View Library Stats");
-                out.println("Enter Your Choice: ");
-                out.println("x");
-                choice = in.readLine();
+                writer.println("--- A D M I N ---");
+                writer.println("0) Log out");
+                writer.println("1) View Library Stats");
+                writer.println("Enter Your Choice: ");
+                writer.println("x");
+                choice = reader.readLine();
                 switch (choice) {
                     case "0":
                         break label;
@@ -401,7 +436,7 @@ class Server {
                         libraryStats();
                         break;
                     default:
-                        out.println("Wrong Input, Please Try Again");
+                        writer.println("Wrong Input, Please Try Again");
                         break;
                 }
             }
@@ -410,10 +445,72 @@ class Server {
         private void libraryStats() throws IOException {
             String[] stats = db.libraryStats();
             for (int i = 0; i < stats.length; i++) {
-                out.println("Current borrowed books: " + stats[0]);
-                out.println("Available books: " + stats[1]);
-                out.println("Requests: " + stats[2]);
+                writer.println("Current borrowed books: " + stats[0]);
+                writer.println("Available books: " + stats[1]);
+                writer.println("Requests: " + stats[2]);
+            }
+        }
+
+//      private void chatList() throws IOException {
+//            int userId;
+//            String[][] acceptedUsers = db.getAcceptedUsers(userName);
+//            if (acceptedUsers.length == 0) {
+//                out.println("No books to view!");
+//                return;
+//            }
+//            out.println("Active Users: ");
+//            for (int i = 0; i < acceptedUsers.length; i++) {
+//                out.println(i + 1 + ") " + acceptedUsers[i][0]);
+//                out.println("   Type: " + acceptedUsers[i][0]);
+//                out.println("   Book Name: " + acceptedUsers[i][0]);
+//            }
+//            out.println("Choose User to chat with: ");
+//            out.println("x");
+//            userId = Integer.parseInt(in.readLine());
+//            Socket receiver = activeUsers.get(acceptedUsers[0][userId - 1]);
+//            Socket sender = activeUsers.get(userName);
+//            if (receiver != null || sender != null) {
+//                startChat(receiver, sender);
+//            } else {
+//                out.println("This user is no longer active!");
+//            }
+//        }
+        private void chatList() throws IOException {
+            int counter = 0;
+            String userId;
+            writer.println("Active Users: ");
+            for (String activeU : activeUsers.keySet()) {
+                writer.println(counter + 1 + ") " + activeU);
+                counter++;
+            }
+            writer.println("Choose User to chat with: ");
+            writer.println("x");
+            userId = reader.readLine();
+            if (userId.equals("x")) return;
+            ClientHandler receiver = activeUsers.get(userId);
+            if (receiver != null) {
+                startChat(receiver);
+            } else {
+                writer.println("This user is no longer active!");
+            }
+        }
+
+        private void startChat(ClientHandler receiver) throws IOException {
+            //TODO: HERE WE NEED TO SEND EVERY MESSAGE RECEIVED FROM THE CLIENT AND SEND IT TO THE OTHER CONNECTED USER
+            //TODO: ALSO SWITCH TO ASYNC MODE IN THE CLIENT SIDE
+            String messageFromClient;
+            while (socket.isConnected()) {
+                try {
+                    messageFromClient = reader.readLine();
+                    //TODO: CHECK IF THE TEXT IS THE 'END' TEXT THEN EXIT
+                    receiver.writer.println(messageFromClient);
+                } catch (IOException e) {
+                    closeEverything();
+                    break;
+                }
+
             }
         }
     }
+
 }
