@@ -28,31 +28,10 @@ class Client {
         Client client = new Client(socket);
         client.sendMessage();
     }
-        //OLD SYNCHRONOUS MESSAGING
-//    public void sendMessage() {
-//        try {
-//            String input, line;
-//            Scanner sc = new Scanner(System.in);
-//            while (true) {
-//                input = reader.readLine();
-//                if (input.equals("shutDown")) break;
-//                if (input.equals("StartAsync")) asynchronousChat();
-//                StringBuilder sent = new StringBuilder();
-//                while (!input.equals("x")) {
-//                    sent.append(input).append("\n");
-//                    input = reader.readLine();
-//                }
-//                System.out.print(sent);
-//                line = sc.nextLine();
-//                writer.println(line);
-//            }
-//        } catch (IOException e) {
-//            closeEverything();
-//        }
-//    }
+
     public void sendMessage() {
         listenForMessage();
-        String input, line;
+        String line;
         Scanner sc = new Scanner(System.in);
         while (isRunning) {
             line = sc.nextLine();
@@ -60,36 +39,6 @@ class Client {
         }
     }
 
-//    public void asynchronousChat() {
-//        listenForMessage();
-//        Scanner sc = new Scanner(System.in);
-//        while (socket.isConnected()) {
-//            String line = sc.nextLine();
-//            if (line.equals("x")) {
-//                writer.println(line);
-//                break;
-//            }
-//            writer.println(line);
-//        }
-//
-//    }
-
-//    public void listenForMessage() {
-//        new Thread(() -> {
-//            String msgFromServer;
-//            while (socket.isConnected()) {
-//                try {
-//                    msgFromServer = reader.readLine();
-//                    if (msgFromServer.equals("x")) {
-//                        break;
-//                    }
-//                    System.out.println(msgFromServer);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        }).start();
-//    }
     public void listenForMessage() {
         new Thread(() -> {
             String msgFromServer;
@@ -98,6 +47,7 @@ class Client {
                     msgFromServer = reader.readLine();
                     if (msgFromServer.equals("shutDown")) {
                         isRunning = false;
+                        closeEverything();
                         break;
                     }
                     System.out.println(msgFromServer);
