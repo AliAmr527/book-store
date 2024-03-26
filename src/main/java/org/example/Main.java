@@ -19,8 +19,8 @@ public class Main {
 //        System.out.println(Arrays.deepToString(db2.viewMyRequests("ahmedd")));
 //        System.out.println(Arrays.toString(db2.modifyRequest("accept", "0")));
 //        System.out.println(Arrays.toString(db2.libraryStats()));
+        System.out.println(Arrays.deepToString(db2.checkAcceptedRequests("ali")));
 //        System.out.println(Arrays.deepToString(db2.checkAcceptedRequests("ahmedd")));
-//        System.out.println(Arrays.deepToString(db2.checkAcceptedRequests("ahmedd")));
-        System.out.println(Arrays.deepToString(db2.modifyRequest("accept","13")));
+//        System.out.println(Arrays.deepToString(db2.modifyRequest("accept","13")));
     }
 }

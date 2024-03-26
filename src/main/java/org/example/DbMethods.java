@@ -104,7 +104,6 @@ public class DbMethods {
     public String[] removeBook(String title) {
         Bson query = eq("title", title);
         DeleteResult result = colBooks.deleteOne(query);
-        System.out.println(result);
         if (result.getDeletedCount() == 0) {
             return msg("false", "404", "couldn't find book");
         }
@@ -310,13 +309,13 @@ public class DbMethods {
         Bson projectionFields2 = Projections.fields(Projections.include("bookTitle", "lender", "borrower", "status"));
         Document doc = colRequests.find(eq("_id", id)).projection(projectionFields2).first();
         if (doc == null) {
-            return msg("false", "404", "request couldn't be found");
+            return msg("false", "404", "Request couldn't be found!");
         }
         String[] temp = requestSpecificDetails(doc);
         String title = temp[1];
         String status = temp[4];
         if (!Objects.equals(status, "pending")) {
-            return msg("false", "500", "this request has already been managed");
+            return msg("false", "500", "This request has already been managed!");
         }
         if (Objects.equals(option, "accept")) {
             Bson projectionFields = Projections.fields(Projections.excludeId());
@@ -330,7 +329,7 @@ public class DbMethods {
                 Document query = new Document().append("_id", id);
                 Bson updates = Updates.combine(Updates.set("status", "denied"));
                 colRequests.updateOne(query, updates);
-                return msg("false", "404", "not enough books available request has been automatically denied");
+                return msg("false", "404", "Not enough books available request has been automatically denied!");
             } else {
                 //changing request from pending to accept
                 Document query = new Document().append("_id", id);
@@ -342,13 +341,13 @@ public class DbMethods {
                 Bson updatesBook = Updates.combine(Updates.set("quantity", Integer.parseInt(quantity) - 1));
                 colBooks.updateOne(queryBook, updatesBook);
 
-                return msg("true", "200", "request has been accepted successfully");
+                return msg("true", "200", "Request has been accepted successfully!");
             }
         } else {
             Document query = new Document().append("_id", id);
             Bson updates = Updates.combine(Updates.set("status", "denied"));
             colRequests.updateOne(query, updates);
-            return msg("true", "200", "request has been denied successfully");
+            return msg("true", "200", "Request has been denied successfully!");
         }
     }
 
@@ -393,9 +392,7 @@ public class DbMethods {
             String[] temp;
             temp = requestSpecificDetails(cursor.next());
             for (int i = 0; i <= 4; i++) {
-                if (Objects.equals(temp[4], "accepted")) {
-                    res[count][i] = temp[i];
-                }
+                res[count][i] = temp[i];
             }
             count++;
         }
@@ -427,7 +424,6 @@ public class DbMethods {
             long lenderCountLong = colRequests.countDocuments((Bson) lenderQuery);
             lenderCount = (int) lenderCountLong;
             allDocuments += lenderCount;
-            System.out.println(lenderCount);
             lenderRes = new String[lenderCount][3];
             String[][] temp = requestSpecificDetailsLoop(isLender, lenderCount);
             for (int i = 0; i < lenderCount; i++) {
@@ -441,7 +437,7 @@ public class DbMethods {
             borrowerCount = (int) borrowerCountLong;
             allDocuments += borrowerCount;
             borrowerRes = new String[borrowerCount][3];
-            String[][] temp = requestSpecificDetailsLoop(isBorrower, lenderCount);
+            String[][] temp = requestSpecificDetailsLoop(isBorrower, borrowerCount);
             for (int i = 0; i < borrowerCount; i++) {
                 borrowerRes[i][0] = temp[i][2];
                 borrowerRes[i][1] = "lender";
@@ -449,8 +445,6 @@ public class DbMethods {
             }
         }
         String[][] res = new String[allDocuments][3];
-        System.out.println(borrowerCount);
-        System.out.println(lenderCount);
         int count = 0;
         int borrowerCountLoop =0;
         for (int i = 0; i < lenderCount; i++) {
