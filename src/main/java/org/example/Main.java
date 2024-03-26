@@ -21,6 +21,6 @@ public class Main {
 //        System.out.println(Arrays.toString(db2.libraryStats()));
 //        System.out.println(Arrays.deepToString(db2.checkAcceptedRequests("ahmedd")));
 //        System.out.println(Arrays.deepToString(db2.checkAcceptedRequests("ahmedd")));
-        System.out.println(Arrays.deepToString(db2.viewMyBorrowerRequestHistory("ali")));
+        System.out.println(Arrays.deepToString(db2.modifyRequest("accept","13")));
     }
 }

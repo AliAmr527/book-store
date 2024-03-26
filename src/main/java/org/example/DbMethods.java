@@ -256,7 +256,7 @@ public class DbMethods {
         //bookTitle
         String s3 = doc.toJson().split(": \"")[2];
         String s4 = s3.split("\",")[0];
-        //borrower
+        //borrower or lender
         String s5 = doc.toJson().split(": \"")[3];
         String s6 = s5.split("\",")[0];
         //status
@@ -312,9 +312,9 @@ public class DbMethods {
         if (doc == null) {
             return msg("false", "404", "request couldn't be found");
         }
-        String[] temp = myRequestDetails(doc);
+        String[] temp = requestSpecificDetails(doc);
         String title = temp[1];
-        String status = temp[3];
+        String status = temp[4];
         if (!Objects.equals(status, "pending")) {
             return msg("false", "500", "this request has already been managed");
         }
