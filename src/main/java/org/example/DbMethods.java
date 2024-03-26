@@ -1,18 +1,21 @@
 package org.example;
 
-import java.util.*;
-
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
-import com.mongodb.client.*;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.DeleteResult;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import com.mongodb.client.model.Projections;
 
-import static com.mongodb.client.model.Filters.*;
+import java.util.Collections;
+import java.util.Objects;
+
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.regex;
 
 public class DbMethods {
     MongoCollection<Document> colUsers;
@@ -26,7 +29,6 @@ public class DbMethods {
         colBooks = db.getDb().getCollection("books");
         colRequests = db.getDb().getCollection("requests");
     }
-
 
     public String[] msg(String flag, String code, String msg) {
         return new String[]{flag, code, msg};
@@ -80,7 +82,6 @@ public class DbMethods {
         return getUserNameAndName(user);
     }
 
-    //title author genre price quantity list of clients
     public String[] addBook(String title, String author, String genre, int price, int quantity, String owner) {
         Document doc = colBooks.find(eq("title", title)).first();
 
@@ -269,11 +270,7 @@ public class DbMethods {
         int count = 0;
         while (cursor.hasNext()) {
             String[] temp = myRequestDetails(cursor.next());
-            for (int i = 0; i <= 3; i++) {
-
-                    res[count][i] = temp[i];
-
-            }
+            System.arraycopy(temp, 0, res[count], 0, 4);
             count++;
         }
         return res;
@@ -391,9 +388,7 @@ public class DbMethods {
         while (cursor.hasNext()) {
             String[] temp;
             temp = requestSpecificDetails(cursor.next());
-            for (int i = 0; i <= 4; i++) {
-                res[count][i] = temp[i];
-            }
+            System.arraycopy(temp, 0, res[count], 0, 5);
             count++;
         }
         return res;
@@ -415,8 +410,7 @@ public class DbMethods {
         MongoCursor<Document> isBorrower = colRequests.find((Bson) borrowerQuery).projection(projectionFields2).iterator();
         int allDocuments = 0;
         int lenderCount = 0;
-        int borrowerCount = 0;
-        //username, hisType, bookTitle
+        int borrowerCount;
         String[][] lenderRes = new String[][]{};
         String[][] borrowerRes = new String[][]{};
 
@@ -446,16 +440,15 @@ public class DbMethods {
         }
         String[][] res = new String[allDocuments][3];
         int count = 0;
-        int borrowerCountLoop =0;
+        int borrowerCountLoop = 0;
         for (int i = 0; i < lenderCount; i++) {
             System.arraycopy(lenderRes[i], 0, res[i], 0, lenderRes[0].length);
             count++;
         }
         for (int i = count; i < allDocuments; i++) {
-                System.arraycopy(borrowerRes[borrowerCountLoop], 0, res[i], 0, borrowerRes[0].length);
-                borrowerCountLoop++;
+            System.arraycopy(borrowerRes[borrowerCountLoop], 0, res[i], 0, borrowerRes[0].length);
+            borrowerCountLoop++;
         }
-        //sample output [name of guy, his type to me, the book name][ali, lender, The Abyss]
         if (res.length == 0) {
             return new String[0][];
         }
