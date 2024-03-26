@@ -48,6 +48,7 @@ class Server {
 
     private static class ClientHandler implements Runnable {
         static Map<String, ClientHandler> activeUsers = new HashMap<String, ClientHandler>();
+        static Map<String, String> connectedUsers = new HashMap<String, String>();
         Socket socket;
         PrintWriter writer;
         BufferedReader reader;
@@ -75,7 +76,7 @@ class Server {
                     writer.println("2) Sign up");
                     writer.println("3) Exit");
                     writer.println("Enter Your Choice: ");
-                    writer.println("x");
+
                     choice = reader.readLine();
                     switch (choice) {
                         case "1":
@@ -98,12 +99,6 @@ class Server {
             }
 
         }
-        /*
-        public void removeClientHandler() {
-            clientHandlers.remove(this);
-            //TODO: send the receiver's name
-            broadcastMessage("user has left the chat");
-        }*/
         public void closeEverything() {
             try {
                 //TODO: CHECK THIS
@@ -117,6 +112,9 @@ class Server {
                 if (socket != null) {
                     socket.close();
                 }
+                if (userName != null){
+                    activeUsers.remove(userName);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -126,14 +124,14 @@ class Server {
             String name, username, password;
             writer.println("Please enter your details to sign up");
             writer.println("Name:");
-            writer.println("x");
             name = reader.readLine();
+
             writer.println("Username:");
-            writer.println("x");
             username = reader.readLine();
+
             writer.println("Password:");
-            writer.println("x");
             password = reader.readLine();
+
             String[] ans = db.register(name, username, password);
             if (!ans[0].equals("false")) {
                 writer.println("Signed up Successfully!!!");
@@ -152,11 +150,11 @@ class Server {
             String username;
             writer.println("Please Enter Username and Password");
             writer.println("Username: ");
-            writer.println("x");
             username = reader.readLine();
+
             writer.println("Password: ");
-            writer.println("x");
             password = reader.readLine();
+
             String[] ans = db.login(username, password);
             if (ans[0].equals("true")) {
                 writer.println("Signed in successfully!");
@@ -188,8 +186,8 @@ class Server {
                 writer.println("6) View Library");
                 writer.println("7) Search for a book");
                 writer.println("Enter Your Choice: ");
-                writer.println("x");
                 choice = reader.readLine();
+
                 switch (choice) {
                     case "0":
                         activeUsers.remove(userName);
@@ -215,7 +213,6 @@ class Server {
                     case "7":
                         searchBook();
                         break;
-
                     default:
                         writer.println("Wrong Input, Please Try Again");
                         break;
@@ -229,20 +226,20 @@ class Server {
             int price, quantity;
             writer.println("Please enter book details");
             writer.println("Book title: ");
-            writer.println("x");
             title = reader.readLine();
+
             writer.println("Book author: ");
-            writer.println("x");
             author = reader.readLine();
+
             writer.println("Book genre: ");
-            writer.println("x");
             genre = reader.readLine();
+
             writer.println("Book price: ");
-            writer.println("x");
             price = Integer.parseInt(reader.readLine());
+
             writer.println("Book quantity: ");
-            writer.println("x");
             quantity = Integer.parseInt(reader.readLine());
+
             String[] ans = db.addBook(title, author, genre, price, quantity, userName);
             if (ans[0].equals("true")) writer.println(ans[2]);
             else writer.println("Error: " + ans[1] + " " + ans[2]);
@@ -257,7 +254,7 @@ class Server {
                     writer.println(i + 1 + ") " + books[i]);
                 }
                 writer.println("Choose a book to remove or 0 (Zero) to go back: ");
-                writer.println("x");
+
                 bookId = Integer.parseInt(reader.readLine());
                 if (bookId == 0) return;
                 String[] ans = db.removeBook(books[bookId - 1]);
@@ -275,8 +272,8 @@ class Server {
                     writer.println(i + 1 + ") " + books[i]);
                 }
                 writer.println("Choose a book to view or 0 (Zero) to go back:  ");
-                writer.println("x");
                 bookId = Integer.parseInt(reader.readLine());
+
                 if (bookId == 0) return;
                 viewBook(books[bookId - 1]);
             }
@@ -293,8 +290,8 @@ class Server {
             writer.println("Book Owner: " + bookDetail[5]);
             writer.println("Do you want to Request " + bookDetail[0] + "? (enter 'yes' or 'no')");
             writer.println("Your Answer: ");
-            writer.println("x");
             choice = reader.readLine();
+
             if (choice.equals("yes")) {
                 String[] ans = db.submitRequest(bookDetail[0], userName);
                 if (ans[0].equals("true")) writer.println(ans[2]);
@@ -309,8 +306,8 @@ class Server {
             writer.println("2) Author ");
             writer.println("3) Genre ");
             writer.println("Choice: ");
-            writer.println("x");
             choice = reader.readLine();
+
             switch (choice) {
                 case "1":
                     searchByTitle();
@@ -331,8 +328,8 @@ class Server {
             String choice;
             writer.println("Enter the title you want to search for");
             writer.println("Response: ");
-            writer.println("x");
             choice = reader.readLine();
+
             String[][] advBooks = db.bookByTitle(choice);
             if (advBooks.length == 0) writer.println("No books with that title!");
             else {
@@ -344,28 +341,26 @@ class Server {
             String choice;
             writer.println("Enter the Author you want to search for");
             writer.println("Response: ");
-            writer.println("x");
             choice = reader.readLine();
+
             String[][] advBooks = db.bookByAuthor(choice);
             if (advBooks.length == 0) writer.println("No books with that Author!");
             else {
                 viewBook2d(advBooks);
             }
-
         }
 
         private void searchByGenre() throws IOException {
             String choice;
             writer.println("Enter the Genre you want to search for");
             writer.println("Response: ");
-            writer.println("x");
             choice = reader.readLine();
+
             String[][] advBooks = db.bookByGenre(choice);
             if (advBooks.length == 0) writer.println("No books with that Genre!");
             else {
                 viewBook2d(advBooks);
             }
-
         }
 
         private void viewBook2d(String[][] advBooks) throws IOException {
@@ -379,8 +374,8 @@ class Server {
                 writer.println("   Book Owner: " + advBooks[i][5]);
             }
             writer.println("Choose a book to request or 0 (Zero) to go back:  ");
-            writer.println("x");
             bookId = Integer.parseInt(reader.readLine());
+
             if (bookId == 0) return;
             String[] ans = db.submitRequest(advBooks[bookId - 1][0], userName);
             if (ans[0].equals("true")) writer.println(ans[2]);
@@ -396,13 +391,13 @@ class Server {
                 writer.println("   Borrower: " + requests[i][2]);
             }
             writer.println("Choose the request you want to handle or 0 (Zero) to go back:  ");
-            writer.println("x");
             requestId = Integer.parseInt(reader.readLine());
+
             if (requestId == 0) return;
             writer.println("1) Approve request");
             writer.println("2) Deny request");
-            writer.println("x");
             choice = Integer.parseInt(reader.readLine());
+
             if (choice == 1) ans = db.modifyRequest("accept", requests[requestId - 1][0]);
             else ans = db.modifyRequest("deny", requests[requestId - 1][0]);
             if (ans[0].equals("true")) writer.println(ans[2]);
@@ -416,7 +411,6 @@ class Server {
                 writer.println("   Borrower: " + request[2]);
                 writer.println("   Status: " + request[3]);
             }
-
         }
 
         private void adminMenu() throws IOException {
@@ -427,8 +421,8 @@ class Server {
                 writer.println("0) Log out");
                 writer.println("1) View Library Stats");
                 writer.println("Enter Your Choice: ");
-                writer.println("x");
                 choice = reader.readLine();
+
                 switch (choice) {
                     case "0":
                         break label;
@@ -451,7 +445,7 @@ class Server {
             }
         }
 
-//      private void chatList() throws IOException {
+        //      private void chatList() throws IOException {
 //            int userId;
 //            String[][] acceptedUsers = db.getAcceptedUsers(userName);
 //            if (acceptedUsers.length == 0) {
@@ -484,26 +478,46 @@ class Server {
                 counter++;
             }
             writer.println("Choose User to chat with: ");
-            writer.println("x");
+
             userId = reader.readLine();
             if (userId.equals("x")) return;
             ClientHandler receiver = activeUsers.get(userId);
             if (receiver != null) {
-                startChat(receiver);
+                connectedUsers.put(userName, userId);
+                startChat(receiver, userId);
             } else {
                 writer.println("This user is no longer active!");
             }
         }
 
-        private void startChat(ClientHandler receiver) throws IOException {
-            //TODO: HERE WE NEED TO SEND EVERY MESSAGE RECEIVED FROM THE CLIENT AND SEND IT TO THE OTHER CONNECTED USER
-            //TODO: ALSO SWITCH TO ASYNC MODE IN THE CLIENT SIDE
+        private void startChat(ClientHandler receiver, String userId) throws IOException {
+            writer.println("Enter 'x' to Leave the chat");
+            String user1 = connectedUsers.get(userName);
+            String user2 = connectedUsers.get(userId);
+            if (user1 != null && user2 != null && connectedUsers.get(userName).equals(userId) && connectedUsers.get(userId).equals(userName)) {
+                receiver.writer.println("SERVER: " + userName + " Has entered the chat!");
+                writer.println("SERVER: " + userId + " Has entered the chat!");
+            } else {
+                receiver.writer.println(userName + " Wants to chat with you, please open your messages!");
+                writer.println("SERVER: This user is not in the chat room!");
+            }
             String messageFromClient;
             while (socket.isConnected()) {
                 try {
                     messageFromClient = reader.readLine();
-                    //TODO: CHECK IF THE TEXT IS THE 'END' TEXT THEN EXIT
-                    receiver.writer.println(messageFromClient);
+                    if (messageFromClient.equals("x")) {
+                        receiver.writer.println("x");
+                        receiver.writer.println("SERVER: " + userName + " Has left the chat!");
+                        connectedUsers.remove(userName);
+                        break;
+                    }
+                    user1 = connectedUsers.get(userName);
+                    user2 = connectedUsers.get(userId);
+                    if (user1 != null && user2 != null && connectedUsers.get(userName).equals(userId) && connectedUsers.get(userId).equals(userName)) {
+                        receiver.writer.println(userName + ": " + messageFromClient);
+                    } else {
+                        writer.println("SERVER: This user is not in the chat room!");
+                    }
                 } catch (IOException e) {
                     closeEverything();
                     break;
