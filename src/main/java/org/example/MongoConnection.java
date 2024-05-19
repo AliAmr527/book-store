@@ -17,7 +17,7 @@ public class MongoConnection {
 
     public MongoConnection() {
         ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger("org.mongodb.driver").setLevel(Level.OFF);
-        connectionString = new ConnectionString("mongodb+srv://reaper9027:ZYfH3T09JcNGb8MR@cluster0.vreqasy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0");
+        connectionString = new ConnectionString("/*put your database link here*/");
         mongoClient = MongoClients.create(connectionString);
         db = mongoClient.getDatabase("bookStore");
     }
